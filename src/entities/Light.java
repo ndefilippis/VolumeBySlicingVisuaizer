@@ -1,26 +1,28 @@
 package entities;
+import util.Transform;
+import vector.Quaternion;
 import vector.Vector3f;
 
 public class Light {
-	private Vector3f position;
+	private Transform transform;
 	private Vector3f color;
 	private Vector3f attenuation = new Vector3f(1, 0, 0);
 	private Vector3f coneDirection = new Vector3f(1, 0, 0);
 	private float coneAngle = 720f;
 	
 	public Light(Vector3f position, Vector3f color) {
-		this.position = position;
+		this.transform = new Transform(position, new Quaternion(), 1.0f);
 		this.color = color;
 	}
 	
 	public Light(Vector3f position, Vector3f color, Vector3f attenuation) {
-		this.position = position;
+		this.transform = new Transform(position, new Quaternion(), 1.0f);
 		this.color = color;
 		this.attenuation = attenuation;
 	}
 	
 	public Light(Vector3f position, Vector3f color, Vector3f attenuation, Vector3f direction, float angle) {
-		this.position = position;
+		this.transform = new Transform(position, Quaternion.AxisAngle(direction, 0f), 1.0f);
 		this.color = color;
 		this.attenuation = attenuation;
 		this.coneDirection = direction;
@@ -28,11 +30,11 @@ public class Light {
 	}
 
 	public Vector3f getPosition() {
-		return position;
+		return transform.getPosition();
 	}
 
 	public void setPosition(Vector3f position) {
-		this.position = position;
+		this.transform.setPosition(position);
 	}
 
 	public Vector3f getColor() {
@@ -49,6 +51,10 @@ public class Light {
 	
 	public Vector3f getAttenuation(){
 		return attenuation;
+	}
+	
+	public void setParent(Transform parent){
+		transform.setParent(parent);
 	}
 	
 	public Vector3f getConeDirection(){

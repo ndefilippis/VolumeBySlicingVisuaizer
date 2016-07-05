@@ -70,7 +70,7 @@ public class Display {
 	private void init() {
         glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
  
-        if ( glfwInit() != GLFW_TRUE )
+        if ( !glfwInit() )
             throw new IllegalStateException("Unable to initialize GLFW");
  		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
  		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -87,7 +87,7 @@ public class Display {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                    glfwSetWindowShouldClose(window, true);
             }
         });
        
@@ -115,7 +115,7 @@ public class Display {
 	}
 
 	public boolean shouldClose() {
-		return glfwWindowShouldClose(window) == GLFW_FALSE;
+		return !glfwWindowShouldClose(window);
 	}
 
 	public void update() {

@@ -5,6 +5,7 @@ import entities.Camera;
 import entities.Light;
 import util.Utils;
 import vector.Matrix4f;
+import vector.Vector2f;
 import vector.Vector3f;
 import vector.Vector4f;
 
@@ -27,10 +28,18 @@ public class StaticShader extends ShaderProgram{
 	private int location_reflectivity;
 	private int location_useFakeLighting;
 	private int location_skyColor;
+	private int location_numberOfRows;
+	private int location_offset;
 	private int location_plane;
+	private int location_toShadowMapSpace;
+	private int location_shadowMap;
 	
 	public StaticShader() {
 		super(VERTEX_FILE, FRAGMENT_FILE);
+	}
+
+	public void connectTextureUnits(){
+		super.loadInt(location_shadowMap, 5);
 	}
 
 	@Override
@@ -49,7 +58,11 @@ public class StaticShader extends ShaderProgram{
 		location_reflectivity = super.getUniformLocation("reflectivity");
 		location_useFakeLighting = super.getUniformLocation("useFakeLighting");
 		location_skyColor = super.getUniformLocation("skyColor");
+		location_numberOfRows = super.getUniformLocation("numberOfRows");
+		location_offset = super.getUniformLocation("offset");
 		location_plane = super.getUniformLocation("plane");
+		location_toShadowMapSpace = super.getUniformLocation("toShadowMapSpace");
+		location_shadowMap = super.getUniformLocation("shadowMap");
 		
 		location_lightPosition = new int[MAX_LIGHTS];
 		location_lightColor = new int[MAX_LIGHTS];
@@ -63,6 +76,14 @@ public class StaticShader extends ShaderProgram{
 			location_coneDirection[i] = super.getUniformLocation("coneDirection[" + i + "]");
 			location_coneAngle[i] = super.getUniformLocation("coneAngle[" + i + "]");
 		}
+	}
+	
+	public void loadNumberOfRows(int numberOfRows){
+		super.loadFloat(location_numberOfRows, numberOfRows);
+	}
+	
+	public void loadOffset(float x, float y){
+		super.loadVector(location_offset, new Vector2f(x, y));
 	}
 	
 	public void loadSkyColor(float r, float g, float b){
@@ -92,6 +113,10 @@ public class StaticShader extends ShaderProgram{
 	
 	public void loadClipPlane(Vector4f clipPlane){
 		super.loadVector(location_plane, clipPlane);
+	}
+	
+	public void loadToShadowSpaceMatrix(Matrix4f matrix){
+		super.loadMatrix(location_toShadowMapSpace, matrix);
 	}
 	
 	public void loadLights(List<Light> lights){

@@ -6,127 +6,113 @@ import renderEngine.Display;
 import vector.Quaternion;
 import vector.Vector2f;
 import vector.Vector3f;
+import vector.Vector4f;
 
 public class CameraPivot {
-	private float roll;
-	private float yaw;
-	private float pitch;
+	private InputContext input;
 	private Quaternion orientation;
-	private float mouseSensitivity = 0.2f;
-	
+	private float lookSensitivity = 5f;
+	private Quaternion orig_orientation;
+
 	private float yawSpeed, pitchSpeed, rollSpeed;
-	
-	private float rc, rs;
-	private float yc, ys;
-	private float pc, ps;
-	
-	public CameraPivot(){
+	private float rotX, rotY, rotZ;
+	private float minX = -(float) Math.PI / 2f, maxX = (float) Math.PI / 2f;
+
+	private boolean limits = true;
+
+	private static Vector3f up = new Vector3f(0, 1, 0);
+	private static Vector3f right = new Vector3f(1, 0, 0);
+	private static Vector3f forward = new Vector3f(0, 0, -1);
+
+	public CameraPivot(InputContext context) {
+		orig_orientation = new Quaternion();
 		setSpeed(20, 20, 20);
 		setAngle(0f, 0f, 0f);
+		this.input = context;
+		//registerInput();
 	}
-	
-	private void setAngle(float roll, float yaw, float pitch){
-		this.roll = roll;
-		this.yaw = yaw;
-		this.pitch = pitch;
-		rc = (float) Math.cos( Math.PI * roll / 180f );
-		rs = (float) Math.sin( Math.PI * roll / 180f );
-		yc = (float) Math.cos( Math.PI * yaw / 180f );
-		ys = (float) Math.sin( Math.PI * yaw / 180f );
-		pc = (float) Math.cos( Math.PI * pitch / 180f );
-		ps = (float) Math.sin( Math.PI * pitch / 180f );
+
+	private void setAngle(float roll, float yaw, float pitch) {
+		orig_orientation = Quaternion.setFromEulerAngles(yaw, pitch, roll);
+		orientation = new Quaternion(orig_orientation);
 	}
-	
-	private void setSpeed(float rollSpeed, float yawSpeed, float pitchSpeed){
-		this.rollSpeed = rollSpeed;
-		this.yawSpeed = yawSpeed;
-		this.pitchSpeed = pitchSpeed;
+
+	private void setSpeed(float rollSpeed, float yawSpeed, float pitchSpeed) {
+		this.rollSpeed = (float) Math.toRadians(rollSpeed);
+		this.yawSpeed = (float) Math.toRadians(yawSpeed);
+		this.pitchSpeed = (float) Math.toRadians(pitchSpeed);
 	}
-	
-	public CameraPivot(float initialRoll, float initialYaw, float initialPitch, float rollSpeed, float yawSpeed, float pitchSpeed){
+
+	public CameraPivot(float initialRoll, float initialYaw, float initialPitch, float rollSpeed, float yawSpeed,
+			float pitchSpeed) {
 		setAngle(initialRoll, initialYaw, initialPitch);
-		setSpeed(rollSpeed, yawSpeed, pitchSpeed);		
+		setSpeed(rollSpeed, yawSpeed, pitchSpeed);
+		registerInput();
 	}
-	
-	public CameraPivot(float initialRoll, float initialYaw, float initialPitch){
+
+	public CameraPivot(float initialRoll, float initialYaw, float initialPitch) {
 		setAngle(initialRoll, initialYaw, initialPitch);
 		setSpeed(20, 20, 20);
+		registerInput();
 	}
-	
-	public void update(){
+
+	public void registerInput() {
+		input.addKeyState(GLFW.GLFW_KEY_Q, "roll_left");
+		input.addKeyState(GLFW.GLFW_KEY_E, "roll_right");
+		input.addMouseRange(Axis.HORIZONTAL, "yaw");
+		input.addMouseRange(Axis.VERTICAL, "pitch");
+		input.addJoystickRange(Axis.VERTICAL, "pitch");
+		input.addJoystickRange(Axis.TWIST, "yaw");
+		input.addJoystickRange(Axis.HORIZONTAL, "roll");
+	}
+
+	public void update() {
+		float time = Display.getFrameTimeSeconds();
+		if (input.getState("roll_left")) {
+			rotZ = time * rollSpeed;
+		}
+		if (input.getState("roll_right")) {
+			rotZ = time * rollSpeed;
+		}
+		rotZ = input.getRange("roll") * lookSensitivity * rollSpeed * time;
+		rotX = input.getRange("pitch") * lookSensitivity * pitchSpeed * time;
+		rotY = input.getRange("yaw") * lookSensitivity * yawSpeed * time;
+		if (limits) {
+			rotX = Math.max(minX, Math.min(maxX, rotX));
+		}
+		Quaternion axis1 = Quaternion.AxisAngle(forward, rotZ);
+		axis1.normalise();
+		Quaternion.mul(axis1, orientation, orientation);
 		
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_Q)){
-			setRoll(roll - rollSpeed*Display.getFrameTimeSeconds());
-		}
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_E)){
-			setRoll(roll + rollSpeed*Display.getFrameTimeSeconds());
-		}
-		Vector2f mouseD = InputHandler.getMouseMoveDistance();
-		mouseD.scale(mouseSensitivity);
-		setYaw(yaw + (mouseD.x * rc - mouseD.y * rs)*yawSpeed*Display.getFrameTimeSeconds());
-		setPitch(pitch + (mouseD.y * rc + mouseD.x * rs)*pitchSpeed*Display.getFrameTimeSeconds());
-		if(pitch > 90f){
-			setPitch(90f);
-		}
-		if(pitch < -90f){
-			setPitch(-90f);
-		}
+		Quaternion axis3 = Quaternion.AxisAngle(up, rotY);
+		axis3.normalise();
+		Quaternion.mul(axis3, orientation, orientation);
+		
+		Quaternion axis2 = Quaternion.AxisAngle(right, rotX);
+		axis2.normalise();
+		Quaternion.mul(axis2, orientation, orientation);
+		
+		
+
 	}
 
-	public float getRoll() {
-		return roll;
+	public Vector3f getUpDirection() {
+		return orientation.rotate(up).normalise(null);
 	}
 
-	public void setYaw(float yaw) {
-		this.yaw = yaw;
-		yc = (float) Math.cos( Math.PI * yaw / 180f );
-		ys = (float) Math.sin( Math.PI * yaw / 180f );
+	public Vector3f getRightDirection() {
+		return orientation.rotate(right).normalise(null);
 	}
 
-	public void setRoll(float roll) {
-		this.roll = roll;
-		rc = (float) Math.cos( Math.PI * roll / 180f );
-		rs = (float) Math.sin( Math.PI * roll / 180f );
+	public Vector3f getLookDirection() {
+		return orientation.rotate(forward).normalise(null);
 	}
 
-	public void setPitch(float pitch) {
-		this.pitch = pitch;
-		pc = (float) Math.cos( Math.PI * pitch / 180f );
-		ps = (float) Math.sin( Math.PI * pitch / 180f );
+	public Quaternion getOrientation() {
+		return orientation;
 	}
 
-	public float getYaw() {
-		return yaw;
-	}
-
-	public float getPitch() {
-		return pitch;
-	}
-	
-	public Vector3f getUpDirection(){
-		float x = rs * yc;
-		float y = rc;
-		float z = rs * ys * ps;
-		Vector3f ret = new Vector3f(x, y, z);
-		ret.normalise();
-		return ret;
-	}
-	
-	public Vector3f getRightDirection(){
-		float x = yc * rc;
-		float y = -rs;
-		float z = ys * rc;
-		Vector3f ret = new Vector3f(x, y, z);
-		ret.normalise();
-		return ret;
-	}
-	
-	public Vector3f getLookDirection(){
-		float x = ys*pc;
-		float y =  -ps;
-		float z = -yc*pc;
-		Vector3f ret = new Vector3f(x, y, z);
-		ret.normalise();
-		return ret;
+	public void disableLimits() {
+		limits = false;
 	}
 }

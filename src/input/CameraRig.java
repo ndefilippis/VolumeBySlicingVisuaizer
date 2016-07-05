@@ -1,7 +1,6 @@
 package input;
 
-import org.lwjgl.glfw.GLFW;
-
+import vector.Quaternion;
 import vector.Vector3f;
 
 public class CameraRig{
@@ -28,14 +27,14 @@ public class CameraRig{
 	}
 
 	public void update(CameraPivot directions){
-		update(directions.getLookDirection(), directions.getUpDirection(), directions.getRightDirection());
+		update(directions.getOrientation());
 	}
 	public void setPosition(Vector3f pos){
 		position = pos;
 	}
 
-	public void update(Vector3f lookDirection, Vector3f upDirection, Vector3f rightDirection){
-		impulse.update(lookDirection, upDirection, rightDirection);
+	public void update(Quaternion orientation){
+		impulse.update(orientation);
 		Vector3f.add(position, impulse.getImpulse(), position);
 	}
 

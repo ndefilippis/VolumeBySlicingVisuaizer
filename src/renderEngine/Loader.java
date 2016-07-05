@@ -18,9 +18,13 @@ import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL33;
 
 import models.Model;
+import models.ModelData;
 import textures.TextureData;
+import util.AABB;
+import util.Utils;
 
 public class Loader {
 	
@@ -35,14 +39,49 @@ public class Loader {
 		storeDataInAttributeList(1, 2, textureCoords);
 		storeDataInAttributeList(2, 3, normals);
 		unbindVAO();
-		return new Model(vaoId, indicies.length);
+		return new Model(vaoId, indicies.length, Utils.getBoundingSphere(positions), Utils.getBoundingBox(positions));
+	}
+	
+	public int createEmptyVBO(int floatCount){
+		int vbo = GL15.glGenBuffers();
+		vbos.add(vbo);
+		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
+		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, floatCount * 4, GL15.GL_STREAM_DRAW);
+		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+		return vbo;
+	}
+	
+	public void addInstancedAttribute(int vao, int vbo, int attribute, int dataSize, int instancedDataLength, int offset){
+		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
+		GL30.glBindVertexArray(vao);
+		GL20.glVertexAttribPointer(attribute, dataSize, GL11.GL_FLOAT, false, instancedDataLength * 4, offset * 4);
+		GL33.glVertexAttribDivisor(attribute, 1);
+		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+		GL30.glBindVertexArray(0);
+	}
+	
+	public void updateVBO(int vbo, float[] data, FloatBuffer buffer){
+		buffer.clear();
+		buffer.put(data);
+		buffer.flip();
+		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
+		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, buffer.capacity(), GL15.GL_STREAM_DRAW);
+		GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0, buffer);
+		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 	}
 	
 	public Model loadToVAO(float[] positions, int dimensions){
 		int vaoId = createVAO();
 		storeDataInAttributeList(0, dimensions, positions);
 		unbindVAO();
-		return new Model(vaoId, positions.length / dimensions );
+		return new Model(vaoId, positions.length / dimensions, 0, new AABB());
+	}
+	
+	public Model loadToVAO(float[] positions){
+		int vaoID = createVAO();
+		this.storeDataInAttributeList(0, 2, positions);
+		unbindVAO();
+		return new Model(vaoID, positions.length/2, 0, null);
 	}
 	
 	private int createVAO(){

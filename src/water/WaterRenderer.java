@@ -1,6 +1,8 @@
 package water;
 
 import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -17,7 +19,7 @@ import vector.Matrix4f;
 import vector.Quaternion;
 import vector.Vector3f;
 
-public class WaterRenderer {
+public class WaterRenderer implements Observer{
 
 	private static final String DUDV_MAP = "waterDUDV";
 	private static final String NORMAL_MAP = "matchingNormalMap";
@@ -32,8 +34,8 @@ public class WaterRenderer {
 	
 	private float moveFactor = 0;
 
-	public WaterRenderer(Loader loader, WaterShader shader, Matrix4f projectionMatrix, WaterFrameBuffers fbos) {
-		this.shader = shader;
+	public WaterRenderer(Loader loader, Matrix4f projectionMatrix, WaterFrameBuffers fbos) {
+		this.shader = new WaterShader();
 		this.fbos = fbos;
 		dudvTexture = loader.loadTexture(DUDV_MAP);
 		normalMap = loader.loadTexture(NORMAL_MAP);
@@ -47,9 +49,7 @@ public class WaterRenderer {
 	public void render(List<WaterTile> water, Camera camera, Light sun) {
 		prepareRender(camera, sun);	
 		for (WaterTile tile : water) {
-			Matrix4f modelMatrix = Utils.createTransformationMatrix(
-					new Vector3f(tile.getX(), tile.getHeight(), tile.getZ()), new Quaternion(),
-					WaterTile.TILE_SIZE);
+			Matrix4f modelMatrix = tile.getTransform().getWorldMatrix();
 			shader.loadModelMatrix(modelMatrix);
 			GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, quad.getVertexCount());
 		}
@@ -93,6 +93,17 @@ public class WaterRenderer {
 		// Just x and z vectex positions here, y is set to 0 in v.shader
 		float[] vertices = { -1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1 };
 		quad = loader.loadToVAO(vertices, 2);
+	}
+	
+	@Override
+	public void update(Observable o, Object arg) {
+		shader.start();
+		shader.loadProjectionMatrix((Matrix4f)arg);
+		shader.stop();
+	}
+	
+	public void cleanUp(){
+		shader.cleanUp();
 	}
 
 }

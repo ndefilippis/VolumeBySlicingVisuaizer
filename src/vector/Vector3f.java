@@ -355,4 +355,12 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 		
 		return false;
 	}
+
+	public static Vector3f Infinity() {
+		return new Vector3f(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
+	}
+
+	public Vector3f scale(Vector3f scale) {
+		return new Vector3f(x*scale.x, y*scale.y, z*scale.z);
+	}
 }

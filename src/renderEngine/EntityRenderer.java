@@ -1,6 +1,8 @@
 package renderEngine;
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -11,11 +13,11 @@ import entities.Entity;
 import models.Model;
 import models.TexturedModel;
 import shaders.StaticShader;
-import textures.ModelTexture;
+import textures.Texture;
 import util.Utils;
 import vector.Matrix4f;
 
-public class EntityRenderer {
+public class EntityRenderer implements Observer{
 
 	private StaticShader shader;
 	
@@ -24,12 +26,14 @@ public class EntityRenderer {
 		
 		shader.start();
 		shader.loadProjectionMatrix(projectionMatrix);
+		shader.connectTextureUnits();
 		shader.stop();
 	}
 	
 	
 	
-	public void render(Map<TexturedModel, List<Entity>> entities){
+	public void render(Map<TexturedModel, List<Entity>> entities, Matrix4f toShadowSpace){
+		shader.loadToShadowSpaceMatrix(toShadowSpace);
 		for(TexturedModel model : entities.keySet()){
 			prepareTexturedModel(model);
 			List<Entity> batch = entities.get(model);
@@ -47,7 +51,8 @@ public class EntityRenderer {
 		GL20.glEnableVertexAttribArray(0);
 		GL20.glEnableVertexAttribArray(1);
 		GL20.glEnableVertexAttribArray(2);
-		ModelTexture texture = model.getTexture();
+		Texture texture = model.getTexture();
+		shader.loadNumberOfRows(texture.getNumberOfRows());
 		if(texture.isHasTransparency()){
 			MasterRenderer.disableCulling();
 		}
@@ -65,10 +70,16 @@ public class EntityRenderer {
 		GL30.glBindVertexArray(0);
 	}
 	private void prepareInstance(Entity entity){
-		Matrix4f transform = Utils.createTransformationMatrix(entity.getPosition(), 
-				entity.getOrientation(), entity.getScale());
+		Matrix4f transform = entity.getTransform().getWorldMatrix();
 		shader.loadTransformationMatrix(transform);
+		shader.loadOffset(entity.getTextureXOffset(), entity.getTextureYOffset());
 	}
 	
+	@Override
+	public void update(Observable o, Object arg) {
+		shader.start();
+		shader.loadProjectionMatrix((Matrix4f)arg);
+		shader.stop();
+	}
 	
 }

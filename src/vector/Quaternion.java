@@ -151,6 +151,10 @@ public class Quaternion extends Vector implements ReadableVector4f {
 	public float lengthSquared() {
 		return x * x + y * y + z * z + w * w;
 	}
+	
+	public float distanceTo(Quaternion other){
+		return new Quaternion(other.x - x, other.y - y, other.z - z, other.w - w).length();
+	}
 
 	/**
 	 * Normalise the source quaternion and place the result in another
@@ -421,7 +425,7 @@ public class Quaternion extends Vector implements ReadableVector4f {
 	 *
 	 * @param a1
 	 *            the axis-angle: (x,y,z) is the axis and w is the angle
-	 */
+	 */	 
 	public final void setFromAxisAngle(Vector4f a1) {
 		x = a1.x;
 		y = a1.y;
@@ -433,6 +437,16 @@ public class Quaternion extends Vector implements ReadableVector4f {
 		y *= s;
 		z *= s;
 		w = (float) Math.cos(0.5 * a1.w);
+	}
+	
+	public final void setFromAxisAngle(Vector3f axis, float angle){
+		setFromAxisAngle(new Vector4f(axis.x, axis.y, axis.z, angle));
+	}
+	
+	public static Quaternion AxisAngle(Vector3f axis, float angle){
+		Quaternion q = new Quaternion();
+		q.setFromAxisAngle(axis, angle);
+		return q;
 	}
 
 	/**
@@ -556,6 +570,17 @@ public class Quaternion extends Vector implements ReadableVector4f {
 		Quaternion q = new Quaternion();
 		q.setFromAxisAngle(new Vector4f(axis.x, axis.y, axis.z, angle));
 		return q.rotate(point);
+	}
+	
+	public float getAngle(){
+		return (float)(2 * Math.acos(w));
+	}
+	
+	public Vector3f getDirection(){
+		float sintheta = (float)Math.sqrt(1 - w * w);
+		Vector3f direction = new Vector3f(x, y, z);
+		direction.scale(sintheta);
+		return direction;
 	}
 
 	public Matrix4f toMatrix4f(){

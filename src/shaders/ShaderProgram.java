@@ -9,6 +9,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
 import vector.Matrix4f;
+import vector.Vector2f;
 import vector.Vector3f;
 import vector.Vector4f;
 
@@ -68,6 +69,10 @@ public abstract class ShaderProgram {
 		GL20.glUniform4f(location, vector.x, vector.y, vector.z, vector.w);
 	}
 	
+	protected void loadVector(int location, Vector2f vector){
+		GL20.glUniform2f(location, vector.x, vector.y);
+	}
+	
 	protected void loadBoolean(int location, boolean value){
 		int toLoad = value ? 0 : 1;
 		GL20.glUniform1f(location, toLoad);
@@ -95,6 +100,7 @@ public abstract class ShaderProgram {
 			while((line = reader.readLine()) != null){
 				shaderSource.append(line).append("\n");
 			}
+			reader.close();
 		} catch (IOException e) {
 			System.err.print("Couldn't read file");
 			e.printStackTrace();

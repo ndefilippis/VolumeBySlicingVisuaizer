@@ -3,66 +3,93 @@ package input;
 import org.lwjgl.glfw.GLFW;
 
 import renderEngine.Display;
+import vector.Quaternion;
 import vector.Vector3f;
 
-public class Impulse{
+public class Impulse {
 	private Vector3f impulse;
 	private float walkSpeed;
 	private float sprintSpeed;
 	private float speed;
 	private boolean isSprinting;
-	
-	public Impulse(){
+	private InputContext input;
+
+	private static Vector3f up = new Vector3f(0, 1, 0);
+	private static Vector3f right = new Vector3f(1, 0, 0);
+	private static Vector3f forward = new Vector3f(0, 0, -1);
+
+	public Impulse() {
 		impulse = new Vector3f();
 		walkSpeed = 20f;
 		sprintSpeed = 100f;
 		this.speed = walkSpeed;
+		configureInput();
 	}
-	
-	
-	public Vector3f getImpulse(){
+
+	public Impulse(InputContext context) {
+		impulse = new Vector3f();
+		walkSpeed = 20f;
+		sprintSpeed = 100f;
+		this.speed = walkSpeed;
+		this.input = context;
+	}
+
+	private void configureInput() {
+		input = new InputContext();
+		input.addKeyState(GLFW.GLFW_KEY_W, "forward");
+		input.addKeyState(GLFW.GLFW_KEY_A, "left");
+		input.addKeyState(GLFW.GLFW_KEY_D, "right");
+		input.addKeyState(GLFW.GLFW_KEY_S, "back");
+		input.addKeyState(GLFW.GLFW_KEY_SPACE, "jump");
+		input.addKeyState(GLFW.GLFW_KEY_LEFT_SHIFT, "sprint");
+		input.addKeyState(GLFW.GLFW_KEY_LEFT_CONTROL, "croutch");
+
+	}
+
+	public Vector3f getImpulse() {
 		return new Vector3f(impulse);
 	}
-	
-	public Impulse(float walkSpeed, float sprintSpeed){
+
+	public Impulse(float walkSpeed, float sprintSpeed) {
 		impulse = new Vector3f();
 		this.walkSpeed = walkSpeed;
 		this.sprintSpeed = sprintSpeed;
 		this.speed = walkSpeed;
+		configureInput();
 	}
 
-	public void update(CameraPivot directions){
-		update(directions.getLookDirection(), directions.getUpDirection(), directions.getRightDirection());
+	public void update(CameraPivot pivot) {
+		update(pivot.getOrientation());
 	}
 
-	public void update(Vector3f lookDirection, Vector3f upDirection, Vector3f rightDirection){
+	public void update(Quaternion orientation) {
 		impulse = new Vector3f();
-		Vector3f move = ((Vector3f) lookDirection.normalise().scale(speed*Display.getFrameTimeSeconds()));
-		Vector3f sideMove = ((Vector3f) rightDirection.normalise().scale(speed*Display.getFrameTimeSeconds()));
-		Vector3f upMove = ((Vector3f) upDirection.normalise().scale(speed*Display.getFrameTimeSeconds()));
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_W)){
+		orientation = orientation.negate(null);
+		Vector3f move = ((Vector3f) orientation.rotate(forward).scale(speed));
+		Vector3f sideMove = ((Vector3f) orientation.rotate(right).scale(speed));
+		Vector3f upMove = ((Vector3f) orientation.rotate(up).scale(speed));
+		if (input.getState("forward")) {
 			Vector3f.add(impulse, move, impulse);
 		}
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_S)){
+		if (input.getState("back")) {
 			Vector3f.sub(impulse, move, impulse);
 		}
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_A)){
+		if (input.getState("left")) {
 			Vector3f.sub(impulse, sideMove, impulse);
 		}
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_D)){
+		if (input.getState("right")) {
 			Vector3f.add(impulse, sideMove, impulse);
 		}
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_SPACE)){
+		if (input.getState("jump")) {
 			Vector3f.add(impulse, upMove, impulse);
 		}
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_LEFT_CONTROL)){
+		if (input.getState("croutch")) {
 			Vector3f.sub(impulse, upMove, impulse);
 		}
-		if(InputHandler.isKeyPressed(GLFW.GLFW_KEY_LEFT_SHIFT)){
+		if (input.getState("sprint")) {
 			speed = sprintSpeed;
 			isSprinting = true;
-		}
-		else{
+		} else {
 			speed = walkSpeed;
 			isSprinting = false;
 		}

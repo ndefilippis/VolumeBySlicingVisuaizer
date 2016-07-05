@@ -2,6 +2,7 @@ package entities;
 
 import input.CameraPivot;
 import input.CameraRig;
+import vector.Quaternion;
 import vector.Vector3f;
 
 public class FreeFormCamera extends Camera{
@@ -13,28 +14,18 @@ public class FreeFormCamera extends Camera{
 		pivot = new CameraPivot(0, 0, 0);
 	}
 	
-	public void move(){
+	public void update(){
 		pivot.update();
-		Vector3f lookDirection = pivot.getLookDirection();
-		Vector3f upDirection = pivot.getUpDirection();
-		Vector3f rightDirection = pivot.getRightDirection();
-		rig.update(lookDirection, upDirection, rightDirection);
-	}
-	
-	public float getRoll(){
-		return pivot.getRoll();
-	}
-	
-	public float getYaw(){
-		return pivot.getYaw();
-	}
-	
-	public float getPitch(){
-		return pivot.getPitch();
+		rig.update(pivot.getOrientation());
 	}
 	
 	public Vector3f getPosition(){
 		return rig.getPosition();
+	}
+
+	@Override
+	public Quaternion getOrientation() {
+		return pivot.getOrientation();
 	}
 
 }

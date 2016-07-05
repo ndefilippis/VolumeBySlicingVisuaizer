@@ -1,15 +1,18 @@
 package util;
 
+import java.util.Observable;
+import java.util.Observer;
+
 import entities.Camera;
 import entities.Player;
 import renderEngine.Display;
-import terrain.Terrain;
+import terrains.Terrain;
 import vector.Matrix4f;
 import vector.Vector2f;
 import vector.Vector3f;
 import vector.Vector4f;
 
-public class MousePicker {
+public class MousePicker implements Observer{
 
 	private static final int RECURSION_COUNT = 200;
 	private static final float RAY_RANGE = 600;
@@ -134,6 +137,11 @@ public class MousePicker {
 
 	private Terrain getTerrain(float worldX, float worldZ) {
 		return Utils.getTerrain(terrains, worldX, worldZ);
+	}
+	
+	@Override
+	public void update(Observable o, Object arg) {
+		projectionMatrix = (Matrix4f)arg;
 	}
 
 }

@@ -17,7 +17,7 @@ import renderEngine.MasterRenderer;
 import renderEngine.OBJFileLoader;
 import solarsystem.Planet;
 import solarsystem.Rocket;
-import textures.ModelTexture;
+import textures.Texture;
 import vector.Vector3f;
 import vector.Vector4f;
 
@@ -40,14 +40,14 @@ public class LWJGLPlanetTest{
 		Model model = loader.loadToVAO(modeldata.getVertices(), modeldata.getTextureCoords(), modeldata.getNormals(),
 				modeldata.getIndices());
 		for(int i = 0; i < 9; i++){
-			ModelTexture Texture = new ModelTexture(loader.loadTexture(planet_textures[i]));
+			Texture Texture = new Texture(loader.loadTexture(planet_textures[i]));
 			planetModels[i] = new TexturedModel(model, Texture);
 		}
 		
 		modeldata = OBJFileLoader.loadOBJ("box");
 		model = loader.loadToVAO(modeldata.getVertices(), modeldata.getTextureCoords(), modeldata.getNormals(),
 				modeldata.getIndices());
-			ModelTexture Texture = new ModelTexture(loader.loadTexture("texture5"));
+			Texture Texture = new Texture(loader.loadTexture("texture5"));
 			TexturedModel rocketModel = new TexturedModel(model, Texture);
 		
 		today = Calendar.getInstance();
@@ -86,7 +86,7 @@ public class LWJGLPlanetTest{
 		
 
 		FreeFormCamera camera = new FreeFormCamera();
-		MasterRenderer renderer = new MasterRenderer(loader);
+		MasterRenderer renderer = new MasterRenderer(loader, camera);
 		while (display.shouldClose()) {
 			currTime = System.nanoTime()/1000000000.0;
 			count++;
@@ -101,7 +101,7 @@ public class LWJGLPlanetTest{
 			while(accumulator >= Math.abs(dt/100/365.25*daysPerSecond)){
 				accumulator -= Math.abs(dt/100/365.25*daysPerSecond);
 			}
-			camera.move();
+			camera.update();
 			input.clear();
 			//renderer.processTerrain(terrain1);
 			for (Entity entity : entities) {
@@ -120,7 +120,8 @@ public class LWJGLPlanetTest{
 			}
 			if(elapsedTime*3600000f % 2 < 1)
 				launchRocket(elapsedTime, 1000);
-			renderer.render(lights, camera, new Vector4f(0, 1, 0, 15));
+			renderer.render(lights, camera, new Vector4f(0, 1, 0, 15), light);
+			renderer.clear();
 			display.update();
 		}
 		

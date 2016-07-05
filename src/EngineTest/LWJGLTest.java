@@ -6,125 +6,111 @@ import java.util.List;
 import java.util.Random;
 
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL30;
 
+import collision.Broadphase;
+import components.WeaponComponent;
+import entities.AIPlayer;
+import entities.Airplane;
 import entities.Camera;
 import entities.Entity;
 import entities.FirstPersonCamera;
 import entities.Light;
-import entities.LightEntity;
-import entities.Player;
-import entities.ShootyMcTooty;
-import input.CameraPivot;
+import entities.ReflectionCamera;
+import entities.ThirdPersonCamera;
+import guis.GUITexture;
+import input.InputContext;
 import input.InputHandler;
 import models.Model;
 import models.ModelData;
 import models.TexturedModel;
+import particles.ParticleMaster;
+import particles.ParticleSystem;
+import particles.ParticleTexture;
 import renderEngine.Display;
 import renderEngine.Loader;
 import renderEngine.MasterRenderer;
 import renderEngine.OBJFileLoader;
-import terrain.Terrain;
-import terrain.TerrainTexture;
-import terrain.TerrainTexturePack;
-import textures.ModelTexture;
+import terrains.Terrain;
+import terrains.TerrainTexturePack;
+import textures.Texture;
 import util.MousePicker;
 import util.Utils;
+import vector.Vector2f;
 import vector.Vector3f;
-import vector.Vector4f;
 import water.WaterFrameBuffers;
-import water.WaterRenderer;
-import water.WaterShader;
 import water.WaterTile;
 
 public class LWJGLTest {
+	private static List<Entity> entities;
+	private static List<Terrain> terrains;
+	private static List<GUITexture> guis;
+	private static List<WaterTile> waters;
+	private static Display display;
+	private static Loader loader;
+
 
 	public static void main(String[] args) {
-		Display display = new Display();
-		Loader loader = new Loader();
+		display = new Display();
+		loader = new Loader();
+		InputContext input = new InputContext();
+		input.addKeyAction(GLFW.GLFW_KEY_F, "toggleFlashlight");
+		input.addKeyAction(GLFW.GLFW_KEY_V, "toggleCamera");
+		input.addKeyAction(GLFW.GLFW_KEY_F3, "toggleDebug");
+		input.addMouseButtonState(GLFW.GLFW_MOUSE_BUTTON_1, "shoot");
+		input.addMouseButtonState(GLFW.GLFW_MOUSE_BUTTON_2, "zoom");
+		input.addJoystickButtonState(0, "shoot");
+		
+		Texture backgroundTexture = new Texture(loader.loadTexture("grassy2"));
+		Texture rTexture = new Texture(loader.loadTexture("mud"));
+		Texture gTexture = new Texture(loader.loadTexture("path"));
+		gTexture.setReflectivity(0.1f);
+		gTexture.setShineDamper(0.3f);
+		Texture bTexture = new Texture(loader.loadTexture("grassFlowers"));
+		TerrainTexturePack texturePack = new TerrainTexturePack(backgroundTexture, rTexture, bTexture, gTexture);
+		Texture blendMap = new Texture(loader.loadTexture("blendMap"));
 
-		TerrainTexture backgroundTexture = new TerrainTexture(
-				loader.loadTexture("grassy2"));
-		TerrainTexture rTexture = new TerrainTexture(loader.loadTexture("mud"));
-		TerrainTexture gTexture = new TerrainTexture(
-				loader.loadTexture("grassFlowers"));
-		TerrainTexture bTexture = new TerrainTexture(loader.loadTexture("path"));
-
-		TerrainTexturePack texturePack = new TerrainTexturePack(
-				backgroundTexture, rTexture, bTexture, gTexture);
-
-		TerrainTexture blendMap = new TerrainTexture(
-				loader.loadTexture("blendMap"));
-
-		ModelData modeldata = OBJFileLoader.loadOBJ("tree");
-		Model model = loader.loadToVAO(modeldata.getVertices(),
-				modeldata.getTextureCoords(), modeldata.getNormals(),
-				modeldata.getIndices());
-		ModelTexture treeTexture = new ModelTexture(loader.loadTexture("tree"));
-		TexturedModel treeModel = new TexturedModel(model, treeTexture);
-
-		modeldata = OBJFileLoader.loadOBJ("fern");
-		model = loader.loadToVAO(modeldata.getVertices(),
-				modeldata.getTextureCoords(), modeldata.getNormals(),
-				modeldata.getIndices());
-		ModelTexture fernTexture = new ModelTexture(loader.loadTexture("fern"));
-		fernTexture.setHasTransparency(true);
-		TexturedModel fernModel = new TexturedModel(model, fernTexture);
-
-		modeldata = OBJFileLoader.loadOBJ("grassModel");
-		model = loader.loadToVAO(modeldata.getVertices(),
-				modeldata.getTextureCoords(), modeldata.getNormals(),
-				modeldata.getIndices());
-		ModelTexture grassTexture = new ModelTexture(
-				loader.loadTexture("grassTexture"));
-		grassTexture.setHasTransparency(true);
-		grassTexture.setUseFakeLighting(true);
-		TexturedModel grassModel = new TexturedModel(model, grassTexture);
-
+		TexturedModel treeModel = createTexturedModel("tree", "tree", 1, false, false);
+		TexturedModel fernModel = createTexturedModel("fern", "fern", 2, true, false);
+		TexturedModel grassModel = createTexturedModel("grassModel", "grassTexture", 1, true, true);
+		TexturedModel swordModel = createTexturedModel("sword", "sword", 1, false, false);
+		
 		Terrain[] terrains = new Terrain[25];
 		for (int i = 0; i < 5; i++) {
 			for (int j = 0; j < 5; j++) {
-				terrains[i * 5 + j] = new Terrain(i - 2, j - 2, loader,
-						texturePack, blendMap, "heightmap");
+				terrains[i * 5 + j] = new Terrain(i, j, loader,
+						texturePack, blendMap);
 			}
 		}
 
 		List<Entity> entities = new ArrayList<Entity>();
 		Random random = new Random();
 		for (int i = 0; i < 800; i++) {
-			float x = (random.nextFloat() - 0.5f) * 6400;
-			float z = (random.nextFloat() - 0.5f) * 6400;
+			float x = (random.nextFloat()) * 1600;
+			float z = (random.nextFloat()) * 1600;
 			float y = Utils.getTerrainHeight(terrains, x, z);
 			entities.add(new Entity(treeModel, new Vector3f(x, y, z), 0f, 0f,
 					0f, 5f));
 		}
-		for (int i = 0; i < 80; i++) {
-			float x = (random.nextFloat() - 0.5f) * 6400;
-			float z = (random.nextFloat() - 0.5f) * 6400;
+		for (int i = 0; i < 800; i++) {
+			float x = (random.nextFloat()) * 1600;
+			float z = (random.nextFloat()) * 1600;
 			float y = Utils.getTerrainHeight(terrains, x, z);
-			entities.add(new Entity(fernModel, new Vector3f(x, y, z), 0f, 0f,
+			entities.add(new Entity(fernModel, random.nextInt(4), new Vector3f(x, y, z), 0f, 0f,
 					0f, 0.5f));
 		}
 		for (int i = 0; i < 80; i++) {
-			float x = (random.nextFloat() - 0.5f) * 6400;
-			float z = (random.nextFloat() - 0.5f) * 6400;
+			float x = (random.nextFloat()) * 1600;
+			float z = (random.nextFloat()) * 1600;
 			float y = Utils.getTerrainHeight(terrains, x, z);
 			entities.add(new Entity(grassModel, new Vector3f(x, y, z), 0f, 0f,
 					0f, 1f));
 		}
-		modeldata = OBJFileLoader.loadOBJ("lamp");
-		model = loader.loadToVAO(modeldata.getVertices(),
-				modeldata.getTextureCoords(), modeldata.getNormals(),
-				modeldata.getIndices());
-		ModelTexture lampTexture = new ModelTexture(loader.loadTexture("lamp"));
-		lampTexture.setUseFakeLighting(true);
-		TexturedModel lampModel = new TexturedModel(model, lampTexture);
+		TexturedModel lampModel = createTexturedModel("lamp", "lamp", 1, false, true);
 
 		List<Light> lights = new ArrayList<Light>();
 		for (int i = 0; i < 25; i++) {
-			float x = i * 100;// (random.nextFloat() - 0.5f) * 100;
-			float z = 0;/* (random.nextFloat() - 0.5f) * 100 */
+			float x = 1600 + i * 100;// (random.nextFloat() - 0.5f) * 100;
+			float z = 1600;/* (random.nextFloat() - 0.5f) * 100 */
 			;
 			float y = Utils.getTerrainHeight(terrains, x, z);
 
@@ -137,121 +123,93 @@ public class LWJGLTest {
 			lights.add(light);
 		}
 
-		Light sun = new Light(new Vector3f(2000, 20000, 200), new Vector3f(1f, 1f, 1f));
+		Light sun = new Light(new Vector3f(220, 200000, 220), new Vector3f(1f, 1f, 1f));
 
 		lights.add(sun);
 
 		InputHandler inputHandler = new InputHandler();
-		modeldata = OBJFileLoader.loadOBJ("person");
-		model = loader.loadToVAO(modeldata.getVertices(),
-				modeldata.getTextureCoords(), modeldata.getNormals(),
-				modeldata.getIndices());
-		ModelTexture planeTexture = new ModelTexture(
-				loader.loadTexture("playerTexture"));
-		TexturedModel planeModel = new TexturedModel(model, planeTexture);
-
-		Player p = new Player(planeModel, 153, -274);
-		//entities.add(p);
+		TexturedModel planeModel = createTexturedModel("f-16", "playerTexture", 1, false, false);
+		TexturedModel gunModel = createTexturedModel("sphere", "sun", 1, false, false);
+		List<Entity> moveable = new ArrayList<Entity>();
+		for(int i = 0; i < 90; i++){
+			float x = (random.nextFloat()) + 1600;
+			float z = (random.nextFloat()) + 1600;
+			float y = Utils.getTerrainHeight(terrains, x, z);
+			Entity aiPlayer = new AIPlayer(planeModel, new Vector3f(x, y, z), 0f, 0f, 0f, 1f, terrains);
+			entities.add(aiPlayer);
+			moveable.add(aiPlayer);
+			Entity sword = new Entity(swordModel, new Vector3f(2.0f, 3, 0), 0f, 180f, 0f, 0.2f);
+			sword.getTransform().setParent(aiPlayer.getTransform());
+			entities.add(sword);
+		}
 		
-		Light flashlight = new Light(p.getPosition(), new Vector3f(10, 10, 10), new Vector3f(1, 0.002f, 0.01f), new Vector3f(1, 0, 0), 30f);
+		Airplane p = new Airplane(planeModel, 153+1600, -274+1600);	
+		Entity leftGun = new Entity(gunModel, new Vector3f(-2, 0, 0), 0, 0, 0, 0.2f);
+		Entity rightGun = new Entity(gunModel, new Vector3f(2, 0, 0), 0, 0, 0, 0.2f);	
+		leftGun.getTransform().setParent(p.getTransform());
+		rightGun.getTransform().setParent(p.getTransform());
+		List<GUITexture> guis = new ArrayList<GUITexture>();
+		Light flashlight = new Light(p.getPosition(), new Vector3f(1, 1, 1), new Vector3f(1, 0.0002f, 0.0001f), new Vector3f(1, 0, 0), 30f);
 		lights.add(flashlight);
 		
-		MasterRenderer renderer = new MasterRenderer(loader);
-		Camera camera = new FirstPersonCamera(p, p.getPivot());
+		
+		Camera firstPerson = new FirstPersonCamera(p, p.getPivot());
+		Camera thirdPerson = new ThirdPersonCamera(p, p.getPivot(), terrains);
+		Camera camera = firstPerson;
+		
+		MasterRenderer renderer = new MasterRenderer(loader, camera);
 		MousePicker picker = new MousePicker(camera,
 				renderer.getProjectionMatrix(), terrains);
 
 		List<Terrain> terrainList = Arrays.asList(terrains);
-
-		WaterShader waterShader = new WaterShader();
-		WaterFrameBuffers fbos = new WaterFrameBuffers();
-		WaterRenderer waterRenderer = new WaterRenderer(loader, waterShader,
-				renderer.getProjectionMatrix(), fbos);
-		List<WaterTile> waters = new ArrayList<WaterTile>();
-		WaterTile water = new WaterTile(75, -75, 0);
-		waters.add(water);
-
-		Camera refract = new Camera() {
-			@Override
-			public Vector3f getPosition() {
-				Vector3f pos = camera.getPosition();
-				float distance = 2 * (pos.y - water.getHeight());
-				return new Vector3f(pos.x, pos.y - distance, pos.z);
-			}
-
-			@Override
-			public float getPitch() {
-				return -camera.getPitch();
-			}
-
-			@Override
-			public float getYaw() {
-				return camera.getYaw();
-			}
-
-			@Override
-			public float getRoll() {
-				return -camera.getRoll();
-			}
-
-			@Override
-			public void move() {
-				return;
-			}
-
-		};
-		Camera reflect = new Camera() {
-			@Override
-			public Vector3f getPosition() {
-				return camera.getPosition();
-			}
-
-			@Override
-			public float getPitch() {
-				return camera.getPitch();
-			}
-
-			@Override
-			public float getYaw() {
-				return camera.getYaw();
-			}
-
-			@Override
-			public float getRoll() {
-				return camera.getRoll();
-			}
-
-			@Override
-			public void move() {
-				return;
-			}
-
-		};
 		
-		modeldata = OBJFileLoader.loadOBJ("person");
-		model = loader.loadToVAO(modeldata.getVertices(), modeldata.getTextureCoords(), modeldata.getNormals(),
-				modeldata.getIndices());
-			ModelTexture Texture = new ModelTexture(loader.loadTexture("texture5"));
-			TexturedModel rocket = new TexturedModel(model, Texture);
-			
-		List<ShootyMcTooty> s = new ArrayList<ShootyMcTooty>();
-		boolean flashlightOn = true;
-		while (display.shouldClose()) {
+		GUITexture shadowMap = new GUITexture(renderer.getShadowMapTexture(), new Vector2f(0.5f, 0.5f), new Vector2f(0.5f, 0.5f));
+		//guis.add(shadowMap);
+		
+		WaterFrameBuffers fbos = new WaterFrameBuffers();
+		List<WaterTile> waters = new ArrayList<WaterTile>();
+		WaterTile water = new WaterTile(75+1600, -75+1600, 0);
+		waters.add(water);
+		
 
-			p.update(terrains);
-			picker.update();
+		Camera reflect = new ReflectionCamera(camera, water);
+		TexturedModel rocket = createTexturedModel("sphere", "sun", 1, false, false);
+			
+		WeaponComponent shooty1 = new WeaponComponent(new Entity(rocket, new Vector3f(0, 0, 0), 0, 0, 0, 1f), 200f, 5f);
+		WeaponComponent shooty2 = new WeaponComponent(new Entity(rocket, new Vector3f(0, 0, 0), 0, 0, 0, 1f), 200f, 5f);
+		boolean flashlightOn = true;
+		
+		ParticleTexture particleTexture = new ParticleTexture(loader.loadTexture("fire"), 8, false);
+		
+		//ParticleSystem system = new ParticleSystem(particleTexture, 5, 4, 0.0f, 7, 15);
+		//system.setDirection(new Vector3f(0, 1, 0), 0.1f);
+		Vector3f startPosition = new Vector3f(p.getPosition());
+		while (display.shouldClose()) {
+			inputHandler.update();
+			Broadphase.getMightBeCollidingUsingSAP(moveable, entities);
 			Vector3f pos = p.getPosition();
-			if(InputHandler.isMousePressed(GLFW.GLFW_MOUSE_BUTTON_1)){
-				
-				Entity e = new Entity(planeModel, new Vector3f(pos.x, pos.y+5, pos.z), 270f, 270f, 0, 1f);
-				entities.add(e);
-				s.add(new ShootyMcTooty(e, picker.getCurrentRay()));
-				if(s.size() > 50){
-					entities.remove(s.get(0).getEntity());
-					s.remove(0);
-				}
+			p.update(terrains);
+			renderer.update();
+			picker.update();
+			ParticleMaster.update(camera);
+			renderer.renderShadowMap(entities, sun);
+			//system.generateParticles(startPosition);
+			if(input.getState("shoot")){
+				shooty1.shoot(leftGun.getPosition(), picker.getCurrentRay(), entities);
+				shooty2.shoot(rightGun.getPosition(), picker.getCurrentRay(), entities);
 			}
-			if(InputHandler.wasKeyPressed(GLFW.GLFW_KEY_F)){
+			float originalFOV = MasterRenderer.FOV;
+			float newFOV;
+			if(input.getState("zoom")){
+				newFOV = Math.max(originalFOV - 100*Display.getFrameTimeSeconds(), 1f);
+			}
+			else{
+				newFOV = Math.min(originalFOV + 100*Display.getFrameTimeSeconds(), 70f);
+			}
+			if(originalFOV != newFOV){
+				renderer.setFOV(newFOV);
+			}
+			if(input.actionPerformed("toggleFlashlight")){
 				if(flashlightOn){
 					lights.remove(flashlight);
 				}
@@ -260,37 +218,55 @@ public class LWJGLTest {
 				}
 				flashlightOn = !flashlightOn;
 			}
-			CameraPivot aa = p.getPivot();
-			for(ShootyMcTooty b : s){
-				b.update();
+			if(input.actionPerformed("toggleDebug")){
+				renderer.toggleDebug();
 			}
-			GL11.glEnable(GL30.GL_CLIP_DISTANCE0);
-			camera.move();
-
-			fbos.bindReflectionFrameBuffer();
-			renderer.renderScene(entities, terrainList, lights, refract,
-					new Vector4f(0, 1, 0, -water.getHeight()-0.1f));
-
-			fbos.bindRefractionFrameBuffer();
-			renderer.renderScene(entities, terrainList, lights, reflect,
-					new Vector4f(0, -1, 0, water.getHeight()+0.1f));
-
+			if(input.actionPerformed("toggleCamera")){
+				entities.remove(p);
+				if(camera == firstPerson){
+					camera = thirdPerson;
+					entities.add(p);
+				}
+				else{
+					camera = firstPerson;
+					entities.remove(p);
+				}
+				
+				reflect = new ReflectionCamera(camera, water);
+			}
+			shooty1.update();
+			shooty2.update();
+			for(Entity e : entities){
+				//e.update();
+			}
+			camera.update();
 			inputHandler.clear();
-			camera.move();
 			flashlight.setPosition(new Vector3f(pos.x, pos.y+5, pos.z));
-			flashlight.setConeDirection(p.getPivot().getLookDirection());
-			GL11.glDisable(GL30.GL_CLIP_DISTANCE0);
-			fbos.unbindCurrentFrameBuffer();
-			renderer.renderScene(entities, terrainList, lights, camera,
-					new Vector4f(0, -1, 0, 150000));
-			waterRenderer.render(waters, camera, sun);
+			Vector3f direction = camera.getOrientation().negate(null).rotate(new Vector3f(0, 0, -1));
+			flashlight.setConeDirection(direction);
+			renderer.renderScene(entities, terrainList, lights, guis, waters, camera, reflect, sun);
+			
 			display.update();
 		}
-		fbos.cleanUp();
-		waterShader.cleanUp();
+		ParticleMaster.cleanUp();
 		renderer.cleanUp();
 		display.cleanUp();
 		loader.cleanUp();
 	}
-
+	
+	private static TexturedModel createTexturedModel(String modelString, String textureString, int numberOfRows, boolean hasTransparency, boolean hasFakeLighting){
+		ModelData modeldata = OBJFileLoader.loadOBJ(modelString);
+		Model model = loader.loadToVAO(modeldata.getVertices(),
+				modeldata.getTextureCoords(), modeldata.getNormals(),
+				modeldata.getIndices());
+		Texture texture = new Texture(loader.loadTexture(textureString));
+		texture.setNumberOfRows(numberOfRows);
+		if(hasTransparency){
+			texture.setHasTransparency(true);
+		}
+		if(hasFakeLighting){
+			texture.setUseFakeLighting(true);
+		}
+		return new TexturedModel(model, texture);
+	}
 }

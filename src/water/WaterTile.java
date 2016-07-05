@@ -1,30 +1,32 @@
 package water;
 
+import util.Transform;
+import vector.Quaternion;
+import vector.Vector3f;
+
 public class WaterTile {
 	
-	public static final float TILE_SIZE = 600;
-	
-	private float height;
-	private float x,z;
+	private static final float TILE_SIZE = 600;
+	private Transform transform;
 	
 	public WaterTile(float centerX, float centerZ, float height){
-		this.x = centerX;
-		this.z = centerZ;
-		this.height = height;
+		this.transform = new Transform(new Vector3f(centerX, height, centerZ), new Quaternion(), TILE_SIZE);
 	}
 
 	public float getHeight() {
-		return height;
+		return transform.getPosition().y;
 	}
 
 	public float getX() {
-		return x;
+		return transform.getPosition().x;
 	}
 
 	public float getZ() {
-		return z;
+		return transform.getPosition().z;
 	}
 
-
+	public Transform getTransform(){
+		return transform;
+	}
 
 }

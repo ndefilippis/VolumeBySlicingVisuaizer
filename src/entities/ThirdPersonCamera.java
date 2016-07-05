@@ -1,25 +1,30 @@
 package entities;
 
+import input.Axis;
 import input.CameraPivot;
+import input.InputContext;
 import input.InputHandler;
-import terrain.Terrain;
+import terrains.Terrain;
 import util.Utils;
+import vector.Quaternion;
 import vector.Vector3f;
 
 public class ThirdPersonCamera extends Camera{
 	private float distanceFromFocus = 50f;
 	private float angleAroundFocus = 0f;
-	private CameraPivot pivot;
 	private Terrain[] t;
+	private InputContext input;
 	
 	private Entity focusOn;
 	private Vector3f offset;
 
-	public ThirdPersonCamera(Entity entity, CameraPivot pivot, Terrain[] t){
+	public ThirdPersonCamera(Entity entity, Terrain[] t){
 		this.focusOn = entity;
 		offset = new Vector3f();
-		this.pivot = pivot;
 		this.t = t;
+		
+		input = new InputContext();
+		input.addScrollRange(Axis.VERTICAL, "zoom");
 	}
 	@Override
 	public Vector3f getPosition() {
@@ -31,38 +36,22 @@ public class ThirdPersonCamera extends Camera{
 		return position;
 	}
 	
-	public void move(){
+	public void update(){
 		calculateZoom();
-		float horizontalDistance = (float)(distanceFromFocus * Math.cos(Math.toRadians(-pivot.getPitch())));
-		float verticalDistance = (float)(distanceFromFocus * Math.sin(Math.toRadians(-pivot.getPitch())));
-		calculateCameraPosition(horizontalDistance, verticalDistance);
-	}
-	
-	private void calculateCameraPosition(float horiz, float vert){
-		float angle = -pivot.getYaw();
-		offset.x = (float)(horiz * Math.sin(Math.toRadians(angle)));
-		offset.z = (float)(horiz * Math.cos(Math.toRadians(angle)));
-		offset.y = -vert; //+ focusOn.getHeight();
+		Quaternion q = focusOn.getOrientation().negate(null);
+		offset = q.rotate(new Vector3f(0, 0, 1));
+		offset.scale(distanceFromFocus);
+		offset.y += 5.0f;
 	}
 
-	@Override
-	public float getPitch() {
-		return pivot.getPitch();
-	}
-
-	@Override
-	public float getYaw() {
-		return pivot.getYaw();
-	}
-
-	@Override
-	public float getRoll() {
-		return pivot.getRoll();
-	}
 	
 	private void calculateZoom(){
-		float zoomLevel = InputHandler.scrollDistance;
+		float zoomLevel = input.getRange("zoom");
 		distanceFromFocus -= zoomLevel;
 		distanceFromFocus = Math.max(distanceFromFocus, 1.0f);
+	}
+	@Override
+	public Quaternion getOrientation() {
+		return pivot.getOrientation();
 	}
 }
