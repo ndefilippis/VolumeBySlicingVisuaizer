@@ -61,15 +61,19 @@ private static final float SIZE = 500f;
 	     SIZE, -SIZE,  SIZE
 	};
 	
-	
-	private static String[] DAY_TEXTURE_FILES = {"clouds_rt", "clouds_lf", "clouds_up", "clouds_dn", "clouds_bk", "clouds_ft"};
-	private static String[] NIGHT_TEXTURE_FILES = {"space_rt", "space_lf", "space_up", "space_dn", "space_bk", "space_ft"};
+	//right left top bottom back front
+	private static String[] DAY_TEXTURE_FILES = {"skybox-1", "skybox-3", "skybox-4", "skybox-5", "skybox-0", "skybox-2"};
+	private static String[] NIGHT_TEXTURE_FILES = {"skybox-1", "skybox-3", "skybox-4", "skybox-5", "skybox-0", "skybox-2"};
 	
 	private Model cube;
 	private int dayTexture;
 	private int nightTexture;
 	private SkyboxShader shader;
 	private float time = 0;
+	
+	//1 - front
+	//3 - right
+	
 	
 	public SkyboxRenderer(Loader loader, Matrix4f projectionMatrix){
 		cube = loader.loadToVAO(VERTICES, 3);
@@ -131,5 +135,9 @@ private static final float SIZE = 500f;
 		shader.start();
 		shader.loadProjectionMatrix((Matrix4f)arg);
 		shader.stop();
+	}
+
+	public void setShouldBlend(boolean b) {
+		shader.setShouldBlend(b);
 	}
 }

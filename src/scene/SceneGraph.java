@@ -1,10 +1,9 @@
 package scene;
 
-import entities.Entity;
-import guis.GUITexture;
-
 import java.util.List;
 
+import components.Entity;
+import guis.GUITexture;
 import terrains.Terrain;
 
 public class SceneGraph {

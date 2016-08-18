@@ -18,7 +18,7 @@ public class AABB {
 		pMin = Vector3f.Infinity();
 		pMax = Vector3f.Infinity().negate(null);
 		for(int i = 0; i < verticies.length; i++){
-			Vector4f v = new Vector4f(verticies[i].x, verticies[i].y, verticies[i].z, 0);
+			Vector4f v = new Vector4f(verticies[i].x, verticies[i].y, verticies[i].z, 1f);
 			Matrix4f.transform(tMatrix, v, v);
 			verticies[i] = new Vector3f(v.x, v.y, v.z);
 			addUnion(verticies[i]);

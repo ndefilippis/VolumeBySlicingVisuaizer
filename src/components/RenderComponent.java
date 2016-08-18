@@ -1,6 +1,5 @@
 package components;
 
-import models.ModelData;
 import models.TexturedModel;
 
 public class RenderComponent implements Component
@@ -14,7 +13,7 @@ public class RenderComponent implements Component
 	
 	public RenderComponent(RenderComponent other){
 		this.texturedModel = other.texturedModel;
-		this.textureIndex = textureIndex;
+		this.textureIndex = other.textureIndex;
 	}
 	
 	public RenderComponent(TexturedModel model, int textureIndex){
@@ -30,14 +29,5 @@ public class RenderComponent implements Component
 	public float getTextureYOffset(){
 		int row = textureIndex/texturedModel.getTexture().getNumberOfRows();
 		return (float)row/(float)texturedModel.getTexture().getNumberOfRows();
-	}
-
-	@Override
-	public void update() {
-	}
-	
-	@Override
-	public ComponentType getType() {
-		return ComponentType.RENDER;
 	}
 }

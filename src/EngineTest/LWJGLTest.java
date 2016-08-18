@@ -7,12 +7,23 @@ import java.util.Random;
 
 import org.lwjgl.glfw.GLFW;
 
-import collision.Broadphase;
-import components.WeaponComponent;
-import entities.AIPlayer;
-import entities.Airplane;
+import collision.CollisionModel;
+import collision.SAPStructure;
+import components.AIPlayerController;
+import components.AirplaneController;
+import components.BasicEntityManager;
+import components.CollisionSystem;
+import components.Entity;
+import components.EntityManager;
+import components.MotionSystem;
+import components.NormalMapComponent;
+import components.PhysicsSystem;
+import components.PlayerController;
+import components.RenderComponent;
+import components.ShootyMcTooty;
+import components.ShootySystem;
 import entities.Camera;
-import entities.Entity;
+import entities.EntityFactory;
 import entities.FirstPersonCamera;
 import entities.Light;
 import entities.ReflectionCamera;
@@ -23,8 +34,8 @@ import input.InputHandler;
 import models.Model;
 import models.ModelData;
 import models.TexturedModel;
+import normalMappingObjConverter.NormalMappedObjLoader;
 import particles.ParticleMaster;
-import particles.ParticleSystem;
 import particles.ParticleTexture;
 import renderEngine.Display;
 import renderEngine.Loader;
@@ -34,6 +45,7 @@ import terrains.Terrain;
 import terrains.TerrainTexturePack;
 import textures.Texture;
 import util.MousePicker;
+import util.Transform;
 import util.Utils;
 import vector.Vector2f;
 import vector.Vector3f;
@@ -41,17 +53,24 @@ import water.WaterFrameBuffers;
 import water.WaterTile;
 
 public class LWJGLTest {
-	private static List<Entity> entities;
-	private static List<Terrain> terrains;
-	private static List<GUITexture> guis;
-	private static List<WaterTile> waters;
 	private static Display display;
 	private static Loader loader;
-
+	private static EntityManager manager;
+	private static EntityFactory factory;
+	private static AirplaneController airplaneController = new AirplaneController();
+	private static PlayerController playerController = new PlayerController();
+	private static AIPlayerController aiController = new AIPlayerController();
+	private static SAPStructure sapStructure = new SAPStructure();
+	private static CollisionSystem collisionSystem = new CollisionSystem(sapStructure);
+	private static MotionSystem motionSystem = new MotionSystem();
+	private static ShootySystem shootySystem = new ShootySystem();
+	private static PhysicsSystem physicsSystem = new PhysicsSystem();
 
 	public static void main(String[] args) {
 		display = new Display();
 		loader = new Loader();
+		manager = new BasicEntityManager();
+		factory = new EntityFactory(manager);
 		InputContext input = new InputContext();
 		input.addKeyAction(GLFW.GLFW_KEY_F, "toggleFlashlight");
 		input.addKeyAction(GLFW.GLFW_KEY_V, "toggleCamera");
@@ -70,9 +89,14 @@ public class LWJGLTest {
 		Texture blendMap = new Texture(loader.loadTexture("blendMap"));
 
 		TexturedModel treeModel = createTexturedModel("tree", "tree", 1, false, false);
+		CollisionModel treeHitBox = createCollisionModel("tree");
 		TexturedModel fernModel = createTexturedModel("fern", "fern", 2, true, false);
+		CollisionModel fernHitBox = createCollisionModel("fern");
 		TexturedModel grassModel = createTexturedModel("grassModel", "grassTexture", 1, true, true);
+		CollisionModel grassHitBox = createCollisionModel("grassModel");
 		TexturedModel swordModel = createTexturedModel("sword", "sword", 1, false, false);
+		CollisionModel swordHitBox = createCollisionModel("sword");
+		TexturedModel barrelModel = createNormalTexturedModel("barrel", "barrel", "barrelNormal", 1, false, false);
 		
 		Terrain[] terrains = new Terrain[25];
 		for (int i = 0; i < 5; i++) {
@@ -81,31 +105,29 @@ public class LWJGLTest {
 						texturePack, blendMap);
 			}
 		}
-
-		List<Entity> entities = new ArrayList<Entity>();
+		
 		Random random = new Random();
-		for (int i = 0; i < 800; i++) {
+		for (int i = 0; i < 80; i++) {
 			float x = (random.nextFloat()) * 1600;
 			float z = (random.nextFloat()) * 1600;
 			float y = Utils.getTerrainHeight(terrains, x, z);
-			entities.add(new Entity(treeModel, new Vector3f(x, y, z), 0f, 0f,
-					0f, 5f));
-		}
-		for (int i = 0; i < 800; i++) {
-			float x = (random.nextFloat()) * 1600;
-			float z = (random.nextFloat()) * 1600;
-			float y = Utils.getTerrainHeight(terrains, x, z);
-			entities.add(new Entity(fernModel, random.nextInt(4), new Vector3f(x, y, z), 0f, 0f,
-					0f, 0.5f));
+			factory.createStaticModel(treeModel, treeHitBox, new Vector3f(x, y, z), 0f, 0f, 0f, 5f, null, sapStructure);
 		}
 		for (int i = 0; i < 80; i++) {
 			float x = (random.nextFloat()) * 1600;
 			float z = (random.nextFloat()) * 1600;
 			float y = Utils.getTerrainHeight(terrains, x, z);
-			entities.add(new Entity(grassModel, new Vector3f(x, y, z), 0f, 0f,
-					0f, 1f));
+			factory.createDecorationModel(fernModel, random.nextInt(4), new Vector3f(x, y, z), 0f, 0f, 0f, 0.5f, null);
 		}
+		for (int i = 0; i < 80; i++) {
+			float x = (random.nextFloat()) * 1600;
+			float z = (random.nextFloat()) * 1600;
+			float y = Utils.getTerrainHeight(terrains, x, z);
+			factory.createDecorationModel(grassModel, new Vector3f(x, y, z), 0f, 0f, 0f, 1f, null);
+		}
+		
 		TexturedModel lampModel = createTexturedModel("lamp", "lamp", 1, false, true);
+		CollisionModel lampHitBox = createCollisionModel("lamp");
 
 		List<Light> lights = new ArrayList<Light>();
 		for (int i = 0; i < 25; i++) {
@@ -118,8 +140,7 @@ public class LWJGLTest {
 			float g = 2;
 			float b = 2;
 			Light light = new Light(new Vector3f(x, y+15, z), new Vector3f(r, g, b), new Vector3f(1, 0.01f, 0.002f));
-			Entity lamp = new Entity(lampModel, new Vector3f(x, y, z), 0, 0, 0, 1, 14);
-			entities.add(lamp);
+			Entity lamp = factory.createStaticModel(lampModel, lampHitBox, new Vector3f(x, y, z), 0, 0, 0, 1, null, sapStructure);
 			lights.add(light);
 		}
 
@@ -128,38 +149,38 @@ public class LWJGLTest {
 		lights.add(sun);
 
 		InputHandler inputHandler = new InputHandler();
-		TexturedModel planeModel = createTexturedModel("f-16", "playerTexture", 1, false, false);
+		TexturedModel planeModel = createTexturedModel("person", "playerTexture", 1, false, false);
+		CollisionModel planeHitbox = createCollisionModel("person");
 		TexturedModel gunModel = createTexturedModel("sphere", "sun", 1, false, false);
 		List<Entity> moveable = new ArrayList<Entity>();
-		for(int i = 0; i < 90; i++){
-			float x = (random.nextFloat()) + 1600;
-			float z = (random.nextFloat()) + 1600;
+		for(int i = 0; i < 10; i++){
+			float x = 1000*(random.nextFloat()) + 1600;
+			float z = 1000*(random.nextFloat()) + 1600;
 			float y = Utils.getTerrainHeight(terrains, x, z);
-			Entity aiPlayer = new AIPlayer(planeModel, new Vector3f(x, y, z), 0f, 0f, 0f, 1f, terrains);
-			entities.add(aiPlayer);
-			moveable.add(aiPlayer);
-			Entity sword = new Entity(swordModel, new Vector3f(2.0f, 3, 0), 0f, 180f, 0f, 0.2f);
-			sword.getTransform().setParent(aiPlayer.getTransform());
-			entities.add(sword);
+			//Entity aiPlayer = factory.createAIPlayer(planeModel, planeHitbox, new Vector3f(x, y, z), 1f, gunModel, planeHitbox, sapStructure);
+			//Transform t = aiPlayer.as(Transform.class);
+			//Entity sword = factory.createDecorationModel(swordModel, new Vector3f(2.0f, 3, 0), 0f, 180f, 0f, 0.2f, t);
 		}
 		
-		Airplane p = new Airplane(planeModel, 153+1600, -274+1600);	
-		Entity leftGun = new Entity(gunModel, new Vector3f(-2, 0, 0), 0, 0, 0, 0.2f);
-		Entity rightGun = new Entity(gunModel, new Vector3f(2, 0, 0), 0, 0, 0, 0.2f);	
-		leftGun.getTransform().setParent(p.getTransform());
-		rightGun.getTransform().setParent(p.getTransform());
+		Vector3f position = new Vector3f(153+1600, Utils.getTerrainHeight(terrains, 153+1600, -274+1600), -274+1600);
+		factory.createNormalMappedDecorationModel(barrelModel, position, 0, 0, 0, 1, null);
+		Entity p = factory.createPlayerEntity(planeModel, planeHitbox, position, 1f, sapStructure);	
+		Transform player = p.as(Transform.class);
+		Entity leftGun = factory.createDecorationModel(gunModel, new Vector3f(-2, 0, 0), 0, 0, 0, 0.2f, player);
+		Entity rightGun = factory.createDecorationModel(gunModel, new Vector3f(2, 0, 0), 0, 0, 0, 0.2f, player);
 		List<GUITexture> guis = new ArrayList<GUITexture>();
-		Light flashlight = new Light(p.getPosition(), new Vector3f(1, 1, 1), new Vector3f(1, 0.0002f, 0.0001f), new Vector3f(1, 0, 0), 30f);
+		Light flashlight = new Light(position, new Vector3f(1, 1, 1), new Vector3f(1, 0.0002f, 0.0001f), new Vector3f(1, 0, 0), 30f);
 		lights.add(flashlight);
 		
 		
-		Camera firstPerson = new FirstPersonCamera(p, p.getPivot());
-		Camera thirdPerson = new ThirdPersonCamera(p, p.getPivot(), terrains);
+		Camera firstPerson = new FirstPersonCamera(p);
+		Camera thirdPerson = new ThirdPersonCamera(p, terrains);
 		Camera camera = firstPerson;
+		RenderComponent playerRenderComponent = p.as(RenderComponent.class);
+		p.remove(playerRenderComponent);
 		
 		MasterRenderer renderer = new MasterRenderer(loader, camera);
-		MousePicker picker = new MousePicker(camera,
-				renderer.getProjectionMatrix(), terrains);
+		MousePicker picker = new MousePicker(camera, renderer.getProjectionMatrix(), terrains);
 
 		List<Terrain> terrainList = Arrays.asList(terrains);
 		
@@ -174,30 +195,44 @@ public class LWJGLTest {
 
 		Camera reflect = new ReflectionCamera(camera, water);
 		TexturedModel rocket = createTexturedModel("sphere", "sun", 1, false, false);
+		CollisionModel rocketHitbox = createCollisionModel("sphere");
 			
-		WeaponComponent shooty1 = new WeaponComponent(new Entity(rocket, new Vector3f(0, 0, 0), 0, 0, 0, 1f), 200f, 5f);
-		WeaponComponent shooty2 = new WeaponComponent(new Entity(rocket, new Vector3f(0, 0, 0), 0, 0, 0, 1f), 200f, 5f);
+		ShootyMcTooty shooty1 = new ShootyMcTooty(rocket, rocketHitbox, 200f, 4.5f);
+		ShootyMcTooty shooty2 = new ShootyMcTooty(rocket, rocketHitbox, 200f, 5f);
+		leftGun.add(shooty1);
+		rightGun.add(shooty2);
 		boolean flashlightOn = true;
 		
 		ParticleTexture particleTexture = new ParticleTexture(loader.loadTexture("fire"), 8, false);
 		
 		//ParticleSystem system = new ParticleSystem(particleTexture, 5, 4, 0.0f, 7, 15);
 		//system.setDirection(new Vector3f(0, 1, 0), 0.1f);
-		Vector3f startPosition = new Vector3f(p.getPosition());
+		display.resetTime();
 		while (display.shouldClose()) {
+			Transform t = p.as(Transform.class);
 			inputHandler.update();
-			Broadphase.getMightBeCollidingUsingSAP(moveable, entities);
-			Vector3f pos = p.getPosition();
-			p.update(terrains);
+			Vector3f pos = t.getPosition();
 			renderer.update();
 			picker.update();
 			ParticleMaster.update(camera);
-			renderer.renderShadowMap(entities, sun);
+			renderer.renderShadowMap(manager.getAll(Transform.class, RenderComponent.class), sun);
+			
 			//system.generateParticles(startPosition);
 			if(input.getState("shoot")){
-				shooty1.shoot(leftGun.getPosition(), picker.getCurrentRay(), entities);
-				shooty2.shoot(rightGun.getPosition(), picker.getCurrentRay(), entities);
+				Transform lT = leftGun.as(Transform.class);
+				Transform rT = rightGun.as(Transform.class);
+				shooty1.shoot(lT.getPosition(), picker.getCurrentRay(), manager);
+				shooty2.shoot(rT.getPosition(), picker.getCurrentRay(), manager);
 			}
+			airplaneController.update(manager);
+			playerController.update(manager);
+			physicsSystem.update(manager);
+			aiController.update(manager);
+			shootySystem.update(manager);
+			collisionSystem.update(manager);
+			motionSystem.update(manager);
+			
+			
 			float originalFOV = MasterRenderer.FOV;
 			float newFOV;
 			if(input.getState("zoom")){
@@ -222,29 +257,23 @@ public class LWJGLTest {
 				renderer.toggleDebug();
 			}
 			if(input.actionPerformed("toggleCamera")){
-				entities.remove(p);
 				if(camera == firstPerson){
 					camera = thirdPerson;
-					entities.add(p);
+					p.add(playerRenderComponent);
 				}
 				else{
 					camera = firstPerson;
-					entities.remove(p);
+					p.remove(playerRenderComponent);
 				}
 				
 				reflect = new ReflectionCamera(camera, water);
-			}
-			shooty1.update();
-			shooty2.update();
-			for(Entity e : entities){
-				//e.update();
 			}
 			camera.update();
 			inputHandler.clear();
 			flashlight.setPosition(new Vector3f(pos.x, pos.y+5, pos.z));
 			Vector3f direction = camera.getOrientation().negate(null).rotate(new Vector3f(0, 0, -1));
 			flashlight.setConeDirection(direction);
-			renderer.renderScene(entities, terrainList, lights, guis, waters, camera, reflect, sun);
+			renderer.renderScene(manager.getAll(Transform.class, RenderComponent.class), terrainList, lights, guis, waters, camera, reflect, sun);
 			
 			display.update();
 		}
@@ -254,6 +283,20 @@ public class LWJGLTest {
 		loader.cleanUp();
 	}
 	
+	private static TexturedModel createNormalTexturedModel(String modelString, String textureString, String normalMapString, int numberOfRows, boolean hasTransparency, boolean hasFakeLighting){
+		Model model = NormalMappedObjLoader.loadOBJ(modelString, loader);
+		Texture texture = new Texture(loader.loadTexture(textureString));
+		texture.setNormalMap(loader.loadTexture(normalMapString));
+		texture.setNumberOfRows(numberOfRows);
+		if(hasTransparency){
+			texture.setHasTransparency(true);
+		}
+		if(hasFakeLighting){
+			texture.setUseFakeLighting(true);
+		}
+		return new TexturedModel(model, texture);
+	}
+
 	private static TexturedModel createTexturedModel(String modelString, String textureString, int numberOfRows, boolean hasTransparency, boolean hasFakeLighting){
 		ModelData modeldata = OBJFileLoader.loadOBJ(modelString);
 		Model model = loader.loadToVAO(modeldata.getVertices(),
@@ -268,5 +311,10 @@ public class LWJGLTest {
 			texture.setUseFakeLighting(true);
 		}
 		return new TexturedModel(model, texture);
+	}
+	
+	private static CollisionModel createCollisionModel(String modelString){
+		ModelData modeldata = OBJFileLoader.loadOBJ(modelString);
+		return new CollisionModel(modeldata);
 	}
 }

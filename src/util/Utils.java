@@ -1,10 +1,10 @@
 package util;
+import java.util.List;
 import java.util.Random;
 
 import entities.Camera;
 import terrains.Terrain;
 import vector.Matrix4f;
-import vector.Quaternion;
 import vector.Vector2f;
 import vector.Vector3f;
 
@@ -82,6 +82,14 @@ public class Utils {
 		return false;
 	}
 	
+	public static Terrain getTerrain(List<Terrain> t, float x, float z){
+		return getTerrain(t.toArray(new Terrain[t.size()]), x, z);
+	}
+	
+	public static float getTerrainHeight(List<Terrain> t, float x, float z){
+		return getTerrainHeight(t.toArray(new Terrain[t.size()]), x, z);
+	}
+	
 	 public static Terrain getTerrain(Terrain[] t, float x, float z){
 			int i = (int)(x/Terrain.SIZE);
 			int j = (int)(z/Terrain.SIZE);
@@ -99,7 +107,7 @@ public class Utils {
 			if(i >= 0 && j >= 0 && i < length && j < length){
 				return t[i*length + j].getHeightOfTerrain(x, z);
 			}
-			return 0;
+			return -Float.MAX_VALUE;
 		}
 
 		public static Vector3f randomVector(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
@@ -151,6 +159,11 @@ public class Utils {
 				if(z > maxZ) maxZ = z;
 			}
 			return new AABB(new Vector3f(minX, minY, minZ), new Vector3f(maxX, maxY, maxZ));
+		}
+
+
+		public static float clamp(float value, float min, float max) {
+			return Math.max(Math.min(value, max), min);
 		}
 
 }

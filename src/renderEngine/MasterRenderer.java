@@ -16,14 +16,17 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL30;
 
+import components.Entity;
+import components.NormalMapComponent;
+import components.RenderComponent;
 import debug.DebugRenderer;
 import entities.Camera;
-import entities.Entity;
 import entities.Light;
 import guis.GUIRenderer;
 import guis.GUITexture;
 import models.TexturedModel;
-import particles.InsertionSort;
+import normalMappingRenderer.NormalMappingRenderer;
+import normalMappingRenderer.NormalMappingShader;
 import particles.ParticleMaster;
 import shaders.StaticShader;
 import shadows.ShadowMapMasterRenderer;
@@ -55,10 +58,14 @@ public class MasterRenderer extends Observable{
 	private StaticShader shader = new StaticShader();
 	private EntityRenderer renderer;
 	
+	private NormalMappingRenderer normalRenderer;
+	private NormalMappingShader normalShader = new NormalMappingShader();
+	
 	private TerrainRenderer terrainRenderer;
 	private TerrainShader terrainShader = new TerrainShader();
 	
 	private Map<TexturedModel, List<Entity>> entities = new HashMap<TexturedModel, List<Entity>>();
+	private Map<TexturedModel, List<Entity>> normalMapEntities = new HashMap<TexturedModel, List<Entity>>();
 	private List<Terrain> terrains = new ArrayList<Terrain>();
 	private List<GUITexture> guis = new ArrayList<GUITexture>();
 	private List<WaterTile> waters = new ArrayList<WaterTile>();
@@ -78,6 +85,7 @@ public class MasterRenderer extends Observable{
 		createProjectionMatrix();
 		waterFBOS = new WaterFrameBuffers();
 		renderer = new EntityRenderer(shader, projectionMatrix);
+		normalRenderer = new NormalMappingRenderer(normalShader, projectionMatrix);
 		terrainRenderer = new TerrainRenderer(terrainShader, projectionMatrix);
 		skyboxRenderer = new SkyboxRenderer(loader, projectionMatrix);
 		shadowMapRenderer = new ShadowMapMasterRenderer(camera);
@@ -86,6 +94,7 @@ public class MasterRenderer extends Observable{
 		ParticleMaster.init(loader, this);
 		guiRenderer = new GUIRenderer(loader);
 		this.addObserver(renderer);
+		this.addObserver(normalRenderer);
 		this.addObserver(terrainRenderer);
 		this.addObserver(skyboxRenderer);
 		this.addObserver(waterRenderer);
@@ -115,7 +124,12 @@ public class MasterRenderer extends Observable{
 			processTerrain(terrain);
 		}
 		for(Entity entity : entities){
-			processEntity(entity);
+			if(entity.has(NormalMapComponent.class)){
+				processNormalMapEntity(entity);
+			}
+			else{
+				processEntity(entity);
+			}
 		}
 		enableClipping();
 		for(WaterTile tile : waterTiles){
@@ -162,6 +176,13 @@ public class MasterRenderer extends Observable{
 		shader.loadViewMatrix(camera);
 		renderer.render(entities, shadowMapRenderer.getToShadowMapSpaceMatrix());
 		shader.stop();
+		normalShader.start();
+		normalShader.loadClipPlane(clipPlane);
+		normalShader.loadSkyColor(SKY_RED, SKY_GREEN, SKY_BLUE);
+		normalShader.loadLights(lights);
+		normalShader.loadViewMatrix(camera);
+		normalRenderer.render(normalMapEntities, shadowMapRenderer.getToShadowMapSpaceMatrix());
+		normalShader.stop();
 		if(shouldRenderSkyBox){
 			skyboxRenderer.render(camera, SKY_RED, SKY_GREEN, SKY_BLUE);
 		}
@@ -177,6 +198,7 @@ public class MasterRenderer extends Observable{
 	public void clear(){
 		terrains.clear();
 		entities.clear();
+		normalMapEntities.clear();
 		guis.clear();
 		waters.clear();
 	}
@@ -197,12 +219,25 @@ public class MasterRenderer extends Observable{
 		terrains.add(terrain);
 	}
 	
-	private void processGUI(GUITexture gui) {
+	public void processGUI(GUITexture gui) {
 		guis.add(gui);
 	}
 	
+	public void processNormalMapEntity(Entity entity){
+		TexturedModel entityModel = entity.as(RenderComponent.class).texturedModel;
+		List<Entity> batch = normalMapEntities.get(entityModel);
+		if(batch != null){
+			batch.add(entity);
+		}
+		else{
+			List<Entity> newBatch = new ArrayList<Entity>();
+			newBatch.add(entity);
+			normalMapEntities.put(entityModel, newBatch);
+		}
+	}
+	
 	public void processEntity(Entity entity){
-		TexturedModel entityModel = entity.getTexturedModel();
+		TexturedModel entityModel = entity.as(RenderComponent.class).texturedModel;
 		List<Entity> batch = entities.get(entityModel);
 		if(batch != null){
 			batch.add(entity);
@@ -240,6 +275,7 @@ public class MasterRenderer extends Observable{
 	
 	public void cleanUp(){
 		shader.cleanUp();
+		normalShader.cleanUp();
 		terrainShader.cleanUp();
 		shadowMapRenderer.cleanUp();
 		waterFBOS.cleanUp();
@@ -268,5 +304,9 @@ public class MasterRenderer extends Observable{
 		projectionMatrix.m23 = -1;
 		projectionMatrix.m32 = -((2 * NEAR_PLANE * FAR_PLANE)/frustum_length);
 		projectionMatrix.m33 = 0;
+	}
+
+	public void setSkyboxBlend(boolean b) {
+		skyboxRenderer.setShouldBlend(b);
 	}
 }

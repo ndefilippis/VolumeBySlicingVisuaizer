@@ -15,7 +15,8 @@ public class CameraPivot {
 	private Quaternion orig_orientation;
 
 	private float yawSpeed, pitchSpeed, rollSpeed;
-	private float rotX, rotY, rotZ;
+	
+	private float totalRotX;
 	private float minX = -(float) Math.PI / 2f, maxX = (float) Math.PI / 2f;
 
 	private boolean limits = true;
@@ -29,7 +30,6 @@ public class CameraPivot {
 		setSpeed(20, 20, 20);
 		setAngle(0f, 0f, 0f);
 		this.input = context;
-		//registerInput();
 	}
 
 	private void setAngle(float roll, float yaw, float pitch) {
@@ -43,20 +43,27 @@ public class CameraPivot {
 		this.pitchSpeed = (float) Math.toRadians(pitchSpeed);
 	}
 
-	public CameraPivot(float initialRoll, float initialYaw, float initialPitch, float rollSpeed, float yawSpeed,
+	public CameraPivot(InputContext context, float initialRoll, float initialYaw, float initialPitch, float rollSpeed, float yawSpeed,
 			float pitchSpeed) {
 		setAngle(initialRoll, initialYaw, initialPitch);
 		setSpeed(rollSpeed, yawSpeed, pitchSpeed);
-		registerInput();
+		this.input = context;
 	}
 
-	public CameraPivot(float initialRoll, float initialYaw, float initialPitch) {
+	public CameraPivot(InputContext context, float initialRoll, float initialYaw, float initialPitch) {
 		setAngle(initialRoll, initialYaw, initialPitch);
 		setSpeed(20, 20, 20);
+		this.input = context;
+	}
+
+	public CameraPivot(float rollSpeed, float yawSpeed, float pitchSpeed) {
 		registerInput();
+		setSpeed(rollSpeed, yawSpeed, pitchSpeed);
+		setAngle(0f, 0f, 0f);
 	}
 
 	public void registerInput() {
+		input = new InputContext();
 		input.addKeyState(GLFW.GLFW_KEY_Q, "roll_left");
 		input.addKeyState(GLFW.GLFW_KEY_E, "roll_right");
 		input.addMouseRange(Axis.HORIZONTAL, "yaw");
@@ -66,23 +73,34 @@ public class CameraPivot {
 		input.addJoystickRange(Axis.HORIZONTAL, "roll");
 	}
 
+
+	private float rotX = 0;
+	private float rotY = 0;
+	private float rotZ = 0;
+	
 	public void update() {
 		float time = Display.getFrameTimeSeconds();
 		if (input.getState("roll_left")) {
-			rotZ = time * rollSpeed;
+			rotZ -= time * rollSpeed;
 		}
 		if (input.getState("roll_right")) {
-			rotZ = time * rollSpeed;
+			rotZ += time * rollSpeed;
 		}
-		rotZ = input.getRange("roll") * lookSensitivity * rollSpeed * time;
-		rotX = input.getRange("pitch") * lookSensitivity * pitchSpeed * time;
-		rotY = input.getRange("yaw") * lookSensitivity * yawSpeed * time;
+		rotZ += input.getRange("roll") * lookSensitivity * rollSpeed * time;
+		rotX += input.getRange("pitch") * lookSensitivity * pitchSpeed * time;
+		rotY += input.getRange("yaw") * lookSensitivity * yawSpeed * time;
+		
 		if (limits) {
-			rotX = Math.max(minX, Math.min(maxX, rotX));
+			if(rotX >= maxX){
+				rotX = maxX;
+			}
+			if(rotX <= minX){
+				rotX = minX;
+			}
 		}
 		Quaternion axis1 = Quaternion.AxisAngle(forward, rotZ);
 		axis1.normalise();
-		Quaternion.mul(axis1, orientation, orientation);
+		Quaternion.mul(axis1, new Quaternion(), orientation);
 		
 		Quaternion axis3 = Quaternion.AxisAngle(up, rotY);
 		axis3.normalise();
@@ -114,5 +132,9 @@ public class CameraPivot {
 
 	public void disableLimits() {
 		limits = false;
+	}
+
+	public void setOrientation(Quaternion q) {
+		this.orientation = q;
 	}
 }

@@ -1,11 +1,12 @@
 package util;
 
+import components.Component;
 import vector.Matrix4f;
 import vector.Quaternion;
 import vector.Vector3f;
 import vector.Vector4f;
 
-public class Transform {
+public class Transform implements Component{
 	private Vector3f position;
 	private Quaternion orientation;
 	private float scale;
@@ -96,6 +97,22 @@ public class Transform {
 		return pos;
 	}
 	
+	public Vector3f invTransform(Vector3f point){
+		Vector4f v = new Vector4f(point.x, point.y, point.z, 1.0f);
+		Vector4f newPoint = Matrix4f.transform(getInvWorldMatrix(), v, null);
+		Vector3f pos = new Vector3f(newPoint.x, newPoint.y, newPoint.z);
+		pos.scale(1.0f/newPoint.w);
+		return pos;
+		
+	}
+	
+	public Matrix4f getInvWorldMatrix(){
+		if(parentTransform == null){
+			return getInvMatrix();
+		}
+		return Matrix4f.mul(getInvMatrix(), parentTransform.getInvWorldMatrix(), null);
+	}
+	
 	public Matrix4f getWorldMatrix(){
 		if(parentTransform == null){
 			return getMatrix();
@@ -110,5 +127,10 @@ public class Transform {
 		float inv_scale = 1.0f / scale;
 		mat.scale(new Vector3f(inv_scale, inv_scale, inv_scale));
 		return mat;
+	}
+
+	public void addOrientation(Quaternion toAdd) {
+		Quaternion.add(this.orientation, toAdd, this.orientation);
+		this.orientation.normalise();
 	}
 }

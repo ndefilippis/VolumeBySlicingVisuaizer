@@ -18,14 +18,6 @@ public class Impulse {
 	private static Vector3f right = new Vector3f(1, 0, 0);
 	private static Vector3f forward = new Vector3f(0, 0, -1);
 
-	public Impulse() {
-		impulse = new Vector3f();
-		walkSpeed = 20f;
-		sprintSpeed = 100f;
-		this.speed = walkSpeed;
-		configureInput();
-	}
-
 	public Impulse(InputContext context) {
 		impulse = new Vector3f();
 		walkSpeed = 20f;
@@ -50,8 +42,22 @@ public class Impulse {
 		return new Vector3f(impulse);
 	}
 
-	public Impulse(float walkSpeed, float sprintSpeed) {
+	public Impulse(InputContext context, float walkSpeed, float sprintSpeed) {
+		this.input = context;
 		impulse = new Vector3f();
+		this.walkSpeed = walkSpeed;
+		this.sprintSpeed = sprintSpeed;
+		this.speed = walkSpeed;
+	}
+	
+	public Impulse(){
+		this.walkSpeed = 20f;
+		this.sprintSpeed = 100f;
+		this.speed = walkSpeed;
+		configureInput();
+	}
+
+	public Impulse(float walkSpeed, float sprintSpeed) {
 		this.walkSpeed = walkSpeed;
 		this.sprintSpeed = sprintSpeed;
 		this.speed = walkSpeed;
@@ -59,12 +65,11 @@ public class Impulse {
 	}
 
 	public void update(CameraPivot pivot) {
-		update(pivot.getOrientation());
+		update(pivot.getOrientation().negate(null));
 	}
 
 	public void update(Quaternion orientation) {
 		impulse = new Vector3f();
-		orientation = orientation.negate(null);
 		Vector3f move = ((Vector3f) orientation.rotate(forward).scale(speed));
 		Vector3f sideMove = ((Vector3f) orientation.rotate(right).scale(speed));
 		Vector3f upMove = ((Vector3f) orientation.rotate(up).scale(speed));
@@ -80,10 +85,10 @@ public class Impulse {
 		if (input.getState("right")) {
 			Vector3f.add(impulse, sideMove, impulse);
 		}
-		if (input.getState("jump")) {
+		if (input.getState("up")) {
 			Vector3f.add(impulse, upMove, impulse);
 		}
-		if (input.getState("croutch")) {
+		if (input.getState("down")) {
 			Vector3f.sub(impulse, upMove, impulse);
 		}
 		if (input.getState("sprint")) {

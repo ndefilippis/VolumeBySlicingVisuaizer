@@ -10,8 +10,13 @@ public class FreeFormCamera extends Camera{
 	private CameraPivot pivot;
 	
 	public FreeFormCamera(){
-		rig = new CameraRig(0, 0, 0, 1, 5);
-		pivot = new CameraPivot(0, 0, 0);
+		rig = new CameraRig(0, 0, 0, 0.1f, 5);
+		pivot = new CameraPivot(10, 10, 10);
+	}
+	
+	public FreeFormCamera(Vector3f position){
+		rig = new CameraRig(position.x, position.y, position.z, 0.1f, 5);
+		pivot = new CameraPivot(10, 10, 10);
 	}
 	
 	public void update(){

@@ -1,5 +1,0 @@
-package components;
-
-public enum ComponentType {
-	TRANSFORM, MOTION, AIPLAYER, AIRPLANE, PLAYER, CAMERAFOCUS, COLLSION, LIGHT, PHYSICS, RENDER, WEAPON, NULL
-}

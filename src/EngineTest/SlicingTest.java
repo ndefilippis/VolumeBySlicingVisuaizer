@@ -3,8 +3,11 @@ package EngineTest;
 import java.util.ArrayList;
 import java.util.List;
 
+import components.BasicEntityManager;
+import components.Entity;
+import components.EntityManager;
 import entities.Camera;
-import entities.Entity;
+import entities.EntityFactory;
 import entities.FreeFormCamera;
 import entities.Light;
 import guis.GUITexture;
@@ -26,6 +29,9 @@ public class SlicingTest {
 	public static void main(String[] args) {
 		Display display = new Display();
 		Loader loader = new Loader();
+		EntityManager manager = new BasicEntityManager();
+		EntityFactory factory = new EntityFactory(manager);
+
 
 		ModelData modeldata = SlicingModelLoader.load();
 		Model model = loader.loadToVAO(modeldata.getVertices(), modeldata.getTextureCoords(), modeldata.getNormals(),
@@ -34,12 +40,13 @@ public class SlicingTest {
 		TexturedModel treeModel = new TexturedModel(model, treeTexture);
 
 		List<Entity> entities = new ArrayList<Entity>();
-		Entity e = new Entity(treeModel, new Vector3f(0, 0, -5f), 0, 0, 0, 1f);
+		List<Entity> normalMapEntities = new ArrayList<Entity>();
+		Entity e = factory.createDecorationModel(treeModel, new Vector3f(0, 0, -5f), 0, 0, 0, 1f, null);
 		entities.add(e);
 		List<Terrain> terrainList = new ArrayList<Terrain>();
 		List<Light> lights = new ArrayList<Light>();
 		List<GUITexture> guis = new ArrayList<GUITexture>();
-
+		
 		Light sun = new Light(new Vector3f(0f, 50f, -5f), new Vector3f(1f, 1f, 1f));
 		Light sun2 = new Light(new Vector3f(20f, 0.5f, -5.5f), new Vector3f(1f, 1f, 1f));
 		lights.add(sun);

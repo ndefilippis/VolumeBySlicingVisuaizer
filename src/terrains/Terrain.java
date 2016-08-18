@@ -1,5 +1,6 @@
 package terrains;
 
+import components.CollisionSystem;
 import models.Model;
 import renderEngine.Loader;
 import textures.Texture;
@@ -25,6 +26,7 @@ public class Terrain {
 		this.blendMap = blendMap;
 		this.transform = new Transform();
 		transform.setPosition(new Vector3f(gridX * SIZE, 0, gridZ*SIZE));
+		CollisionSystem.terrainColliders.add(this);
 		this.model = generateTerrain(loader);
 	}
 

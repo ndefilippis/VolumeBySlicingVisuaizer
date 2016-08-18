@@ -9,10 +9,8 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 
-import components.ComponentType;
-import components.TransformComponent;
+import components.Entity;
 import entities.Camera;
-import entities.EntityC;
 import models.Model;
 import models.ModelData;
 import models.TexturedModel;
@@ -39,16 +37,16 @@ public class DebugRenderer implements Observer{
 			sphereModelData.getIndices());
 	}
 	
-	public void render(Camera camera, Map<TexturedModel, List<EntityC>> entitiesMap){
+	public void render(Camera camera, Map<TexturedModel, List<Entity>> entitiesMap){
 		shader.start();
 		shader.loadViewMatrix(camera);
 		for(TexturedModel key : entitiesMap.keySet()){
-			List<EntityC> entities = entitiesMap.get(key);
+			List<Entity> entities = entitiesMap.get(key);
 			AABB box = key.getRawModel().getBoundingBox();
-			for(EntityC e : entities){
-				TransformComponent tComponent = (TransformComponent)e.getComponent(ComponentType.TRANSFORM);
+			for(Entity e : entities){
+				Transform transform = e.as(Transform.class);
 				prepareBoundingSphere();
-				loadModelMatrix(tComponent.transform, box);
+				loadModelMatrix(transform, box);
 				GL11.glDrawElements(GL11.GL_LINES, boundingModel.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
 			}
 		}
@@ -58,7 +56,7 @@ public class DebugRenderer implements Observer{
 	private void loadModelMatrix(Transform transformation, AABB scale) {
 		AABB transformedBoundingBox = new AABB(scale, transformation);
 		Matrix4f newTransformationMatrix = new Matrix4f();
-		Vector3f center = transformedBoundingBox.getCenter();
+		Vector3f center = scale.getCenter();
 		Vector3f translate = Vector3f.add(transformation.getPosition(), center, null);
 		newTransformationMatrix.translate(translate);
 		newTransformationMatrix.scale(transformedBoundingBox.getScale());

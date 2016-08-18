@@ -42,6 +42,8 @@ package vector;
 
 import java.nio.FloatBuffer;
 
+import util.Utils;
+
 public class Quaternion extends Vector implements ReadableVector4f {
 	private static final long serialVersionUID = 1L;
 
@@ -606,5 +608,65 @@ public class Quaternion extends Vector implements ReadableVector4f {
 		result.m33 = 1.0f;
 		
 		return result;
+	}
+	
+	public static Quaternion add(Quaternion q1, Quaternion q2, Quaternion dest) {
+		if(dest == null){
+			dest = new Quaternion();
+		}
+		dest.x = q1.x + q2.x;
+		dest.y = q1.y + q2.y;
+		dest.z = q1.z + q2.z;
+		dest.w = q1.w + q2.w;
+		return dest;
+	}
+	
+	public static Quaternion sub(Quaternion q1, Quaternion q2, Quaternion dest) {
+		if(dest == null){
+			dest = new Quaternion();
+		}
+		dest.x = q1.x - q2.x;
+		dest.y = q1.y - q2.y;
+		dest.z = q1.z - q2.z;
+		dest.w = q1.w - q2.w;
+		return dest;
+	}
+	
+	public static Quaternion lookAt(Vector3f lookAt, Vector3f upDirection){
+		Vector3f forward = lookAt.normalise(null);
+		Vector3f up = upDirection.normalise(null);
+		Vector3f right = Vector3f.cross(up, forward, null).normalise(null);
+		Quaternion q = new Quaternion();
+		q.setFromMat(right.x, up.x, forward.x,
+					 right.y, up.y, forward.y,
+					 right.z, up.z, forward.z);
+		return q;
+	}
+	
+	public static Quaternion slerp(Quaternion q0, Quaternion q1, float alpha) {
+		q0 = new Quaternion(q0);
+		q1 = new Quaternion(q1);
+		
+		float dot = Quaternion.dot(q0, q1);
+		
+		float DOT_THRESHOLD = 0.9995f;
+		if(dot > DOT_THRESHOLD)
+			return lerp(q0, q1, alpha);
+		
+		dot = Utils.clamp(dot, -1, 1);
+		float theta = (float)Math.acos(dot) * alpha;
+		
+		Quaternion q2 = Quaternion.sub(q1, Quaternion.scale(dot, q0, null), null);
+		
+		return Quaternion.add(
+			Quaternion.scale((float)Math.cos(theta), q0, null),
+			Quaternion.scale((float)Math.sin(theta), q2, null), null);
+	}
+
+	private static Quaternion lerp(Quaternion q0, Quaternion q1, float alpha) {
+		return new Quaternion(q0.x + (q1.x - q0.x) * alpha,
+				q0.y + (q1.y - q0.y) * alpha,
+				q0.z + (q1.z - q0.z) * alpha,
+				q0.w + (q1.w - q0.w) * alpha).normalise(null);
 	}
 }

@@ -5,8 +5,8 @@ import java.util.Map;
 
 import org.lwjgl.opengl.GL11;
 
+import components.Entity;
 import entities.Camera;
-import entities.Entity;
 import entities.Light;
 import models.TexturedModel;
 import vector.Matrix4f;

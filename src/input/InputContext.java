@@ -59,6 +59,10 @@ public class InputContext {
 		rangeMap.put(action, value);
 	}
 	
+	public void addRangeValue(String action, float value) {
+		rangeMap.put(action, value + rangeMap.get(action));
+	}
+	
 	public void addKeyState(int key, String action){
 		keyEventMap.put(key, action);
 		stateMap.put(action, false);
@@ -104,15 +108,24 @@ public class InputContext {
 	}
 	
 	public boolean getState(String action){
-		return stateMap.get(action);
+		if(stateMap.containsKey(action)){
+			return stateMap.get(action);
+		}
+		return false;
 	}
 	
 	public boolean actionPerformed(String action){
-		return actionMap.get(action);
+		if(actionMap.containsKey(action)){
+			return actionMap.get(action);
+		}
+		return false;
 	}
 	
 	public float getRange(String action){
-		return rangeMap.get(action);
+		if(rangeMap.containsKey(action)){
+			return rangeMap.get(action);
+		}
+		return 0.0f;
 	}
 
 	public InputType getKeyInputTypeFor(int key){
@@ -163,6 +176,5 @@ public class InputContext {
 		if(rangeMap.containsKey(action)) return InputType.RANGE;
 		return InputType.NONE;
 	}
-
 	
 }

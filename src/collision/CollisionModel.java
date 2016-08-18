@@ -38,12 +38,12 @@ public class CollisionModel {
 	 		if(points != null){
 	 			return points;
 	 		}
-	 		points = new Vector3f[indices.length/3];
+	 		points = new Vector3f[indices.length];
 	 		for(int i = 0; i < indices.length; i++){
-	 			float x = vertices[indices[i*3 + 0]];
-	 			float y = vertices[indices[i*3 + 1]];
-	 			float z = vertices[indices[i*3 + 2]];
-	 			points[i/3] = new Vector3f(x, y, z);
+	 			float x = vertices[3*indices[i]+0];
+	 			float y = vertices[3*indices[i]+1];
+	 			float z = vertices[3*indices[i]+2];
+	 			points[i] = new Vector3f(x, y, z);
 	 		}
 	 		return points;
 	 	}

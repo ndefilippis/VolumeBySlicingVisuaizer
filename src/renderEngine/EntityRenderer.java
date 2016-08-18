@@ -1,4 +1,5 @@
 package renderEngine;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Observable;
@@ -9,12 +10,13 @@ import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 
-import entities.Entity;
+import components.Entity;
+import components.RenderComponent;
 import models.Model;
 import models.TexturedModel;
 import shaders.StaticShader;
 import textures.Texture;
-import util.Utils;
+import util.Transform;
 import vector.Matrix4f;
 
 public class EntityRenderer implements Observer{
@@ -70,9 +72,12 @@ public class EntityRenderer implements Observer{
 		GL30.glBindVertexArray(0);
 	}
 	private void prepareInstance(Entity entity){
-		Matrix4f transform = entity.getTransform().getWorldMatrix();
+		Matrix4f transform = entity.as(Transform.class).getWorldMatrix();
 		shader.loadTransformationMatrix(transform);
-		shader.loadOffset(entity.getTextureXOffset(), entity.getTextureYOffset());
+		shader.loadOffset( 
+			entity.as(RenderComponent.class).getTextureXOffset(), 
+			entity.as(RenderComponent.class).getTextureYOffset()
+		);
 	}
 	
 	@Override

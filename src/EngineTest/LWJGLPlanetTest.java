@@ -4,7 +4,10 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
 
-import entities.Entity;
+import components.BasicEntityManager;
+import components.Entity;
+import components.EntityManager;
+import entities.EntityFactory;
 import entities.FreeFormCamera;
 import entities.Light;
 import input.InputHandler;
@@ -31,9 +34,14 @@ public class LWJGLPlanetTest{
 	private static ArrayList<Rocket> rockets = new ArrayList<Rocket>();
 	private static final double dt = 1.0D / 60.0D;
 	
+	private static EntityManager manager;
+	private static EntityFactory factory;
+	
 	public static void main(String[] args){
 		Display display = new Display();
 		Loader loader = new Loader();
+		manager = new BasicEntityManager();
+		factory = new EntityFactory(manager);
 		InputHandler input = new InputHandler();
 		
 		ModelData modeldata = OBJFileLoader.loadOBJ("sphere");
@@ -73,8 +81,9 @@ public class LWJGLPlanetTest{
 			float px = v.x;
 			float py = v.y;
 			float pz = v.z;
-			entities.add(new Entity(planetModels[i],
-					new Vector3f(px, py, pz), 0f, 0f, 0f,  (float)Math.log10(Planet.values()[i].getSize()/150f)));
+			Entity planet = factory.createDecorationModel(planetModels[i], new Vector3f(px, py, pz),
+					0f, 0f, 0f,  (float)Math.log10(Planet.values()[i].getSize()/150f), null);
+			entities.add(planet); 
 		}
 
 
@@ -111,12 +120,13 @@ public class LWJGLPlanetTest{
 			entities.clear();
 			for (int i = 0; i < planetModels.length; i++) {
 				Vector3f v = (Vector3f)(Planet.values()[i].positionAtTime(elapsedTime+accumulator).scale(25f));
-				entities.add(new Entity(planetModels[i],
-						v, 0f, 0f, 0f,  (float)Math.log10(Planet.values()[i].getSize()/150f)));
+				Entity planet = factory.createDecorationModel(planetModels[i], new Vector3f(v.x, v.y, v.z),
+						0f, 0f, 0f,  (float)Math.log10(Planet.values()[i].getSize()/150f), null);
+				entities.add(planet); 
 			}
 			for(int i = 0; i < rockets.size(); i++){
 				Vector3f v = (Vector3f)(rockets.get(i).getPostion(elapsedTime+accumulator).scale(25f));
-				entities.add(new Entity(rocketModel, v, 90f - rockets.get(i).getAngle(), 0f, rockets.get(i).getAngle() - 90f, 1f));
+				entities.add(factory.createDecorationModel(rocketModel, v, 90f - rockets.get(i).getAngle(), 0f, rockets.get(i).getAngle() - 90f, 1f, null));
 			}
 			if(elapsedTime*3600000f % 2 < 1)
 				launchRocket(elapsedTime, 1000);

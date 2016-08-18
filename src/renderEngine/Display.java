@@ -133,4 +133,9 @@ public class Display {
 	private static long getCurrentTime(){
 		return (long)(glfwGetTime()*1000);
 	}
+
+	public void resetTime() {
+		delta = 0.0f;
+		lastFrameTime = getCurrentTime();
+	}
 }

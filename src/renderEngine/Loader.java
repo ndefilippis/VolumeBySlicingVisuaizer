@@ -13,6 +13,7 @@ import javax.imageio.ImageIO;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL15;
@@ -21,7 +22,6 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL33;
 
 import models.Model;
-import models.ModelData;
 import textures.TextureData;
 import util.AABB;
 import util.Utils;
@@ -31,6 +31,17 @@ public class Loader {
 	private List<Integer> vaos = new ArrayList<Integer>();
 	private List<Integer> vbos = new ArrayList<Integer>();
 	private List<Integer> textures = new ArrayList<Integer>();
+	
+	public Model loadToVAO(float[] positions, float[] textureCoords, float[] normals, float[] tangents, int[] indicies){
+		int vaoId = createVAO();
+		bindIndiciesBuffer(indicies);
+		storeDataInAttributeList(0, 3, positions);
+		storeDataInAttributeList(1, 2, textureCoords);
+		storeDataInAttributeList(2, 3, normals);
+		storeDataInAttributeList(3, 3, tangents);
+		unbindVAO();
+		return new Model(vaoId, indicies.length, Utils.getBoundingSphere(positions), Utils.getBoundingBox(positions));
+	}
 	
 	public Model loadToVAO(float[] positions, float[] textureCoords, float[] normals, int[] indicies){
 		int vaoId = createVAO();
@@ -102,6 +113,8 @@ public class Loader {
 		}
 		GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
 		GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+		GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+		GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
 		textures.add(texID);
 		return texID;
 	}

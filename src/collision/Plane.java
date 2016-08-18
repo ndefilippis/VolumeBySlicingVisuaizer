@@ -17,7 +17,10 @@ public class Plane {
 	}
 	
 	public Plane(Vector3f p1, Vector3f p2, Vector3f p3){
-		Vector3f.cross(Vector3f.sub(p2, p1, null), Vector3f.sub(p3, p1, null) , normal);
+		this.normal = Vector3f.cross(Vector3f.sub(p2, p1, null), Vector3f.sub(p3, p1, null), null);
+		if(normal.length() == 0){
+			normal = new Vector3f(0, 1, 0);
+		}
 		normal.normalise();
 		origin = p1;
 		

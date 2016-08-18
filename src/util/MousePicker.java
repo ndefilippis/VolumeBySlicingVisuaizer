@@ -4,7 +4,6 @@ import java.util.Observable;
 import java.util.Observer;
 
 import entities.Camera;
-import entities.Player;
 import renderEngine.Display;
 import terrains.Terrain;
 import vector.Matrix4f;
@@ -12,7 +11,7 @@ import vector.Vector2f;
 import vector.Vector3f;
 import vector.Vector4f;
 
-public class MousePicker implements Observer{
+public class MousePicker implements Observer {
 
 	private static final int RECURSION_COUNT = 200;
 	private static final float RAY_RANGE = 600;
@@ -22,7 +21,7 @@ public class MousePicker implements Observer{
 	private Matrix4f projectionMatrix;
 	private Matrix4f viewMatrix;
 	private Camera camera;
-	
+
 	private Terrain[] terrains;
 	private Vector3f currentTerrainPoint;
 
@@ -32,7 +31,7 @@ public class MousePicker implements Observer{
 		viewMatrix = Utils.createViewMatrix(camera);
 		this.terrains = terrains;
 	}
-	
+
 	public Vector3f getCurrentTerrainPoint() {
 		return currentTerrainPoint;
 	}
@@ -44,20 +43,18 @@ public class MousePicker implements Observer{
 	public void update() {
 		viewMatrix = Utils.createViewMatrix(camera);
 		currentRay = calculateMouseRay();
-		if (intersectionInRange(0, RAY_RANGE, currentRay)) {
-			currentTerrainPoint = binarySearch(0, 0, RAY_RANGE, currentRay);
-		} else {
-			currentTerrainPoint = null;
+		if (terrains != null) {
+			if (intersectionInRange(0, RAY_RANGE, currentRay)) {
+				currentTerrainPoint = binarySearch(0, 0, RAY_RANGE, currentRay);
+			} else {
+				currentTerrainPoint = null;
+			}
 		}
-	}
-	
-	public Vector3f calculateMouseRayFromPlayer(Player p){
-		return null;
 	}
 
 	private Vector3f calculateMouseRay() {
-		float mouseX = Display.getWidth()/2f;
-		float mouseY = Display.getHeight()/2f;
+		float mouseX = Display.getWidth() / 2f;
+		float mouseY = Display.getHeight() / 2f;
 		Vector2f normalizedCoords = getNormalisedDeviceCoordinates(mouseX, mouseY);
 		Vector4f clipCoords = new Vector4f(normalizedCoords.x, normalizedCoords.y, -1.0f, 1.0f);
 		Vector4f eyeCoords = toEyeCoords(clipCoords);
@@ -84,16 +81,16 @@ public class MousePicker implements Observer{
 		float y = (2.0f * mouseY) / Display.getHeight() - 1f;
 		return new Vector2f(x, y);
 	}
-	
-	//**********************************************************
-	
+
+	// **********************************************************
+
 	private Vector3f getPointOnRay(Vector3f ray, float distance) {
 		Vector3f camPos = camera.getPosition();
 		Vector3f start = new Vector3f(camPos.x, camPos.y, camPos.z);
 		Vector3f scaledRay = new Vector3f(ray.x * distance, ray.y * distance, ray.z * distance);
 		return Vector3f.add(start, scaledRay, null);
 	}
-	
+
 	private Vector3f binarySearch(int count, float start, float finish, Vector3f ray) {
 		float half = start + ((finish - start) / 2f);
 		if (count >= RECURSION_COUNT) {
@@ -138,10 +135,10 @@ public class MousePicker implements Observer{
 	private Terrain getTerrain(float worldX, float worldZ) {
 		return Utils.getTerrain(terrains, worldX, worldZ);
 	}
-	
+
 	@Override
 	public void update(Observable o, Object arg) {
-		projectionMatrix = (Matrix4f)arg;
+		projectionMatrix = (Matrix4f) arg;
 	}
 
 }

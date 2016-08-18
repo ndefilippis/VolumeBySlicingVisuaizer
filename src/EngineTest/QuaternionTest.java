@@ -21,5 +21,8 @@ public class QuaternionTest {
 		Vector3f axis = new Vector3f(q3.getX(), q3.getY(), q3.getZ());
 		axis.scale(1 / sinTheta);
 		System.out.println(axis + ": " + Math.toDegrees(theta));
+		
+		Quaternion q4 = Quaternion.AxisAngle(new Vector3f(1, 1, 1), 1f);
+		System.out.println(q4);
 	}
 }

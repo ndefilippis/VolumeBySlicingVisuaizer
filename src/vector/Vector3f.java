@@ -363,4 +363,17 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	public Vector3f scale(Vector3f scale) {
 		return new Vector3f(x*scale.x, y*scale.y, z*scale.z);
 	}
+
+	public float get(int axis) {
+		switch(axis){
+			case 0:
+				return x;
+			case 1:
+				return y;
+			case 2:
+				return z;
+			default:
+				return Float.NaN;
+		}
+	}
 }
